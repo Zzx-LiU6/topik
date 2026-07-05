@@ -54,10 +54,10 @@
             请选择下一步操作：
           </p>
           <div class="space-y-3">
-            <button onclick="resetCurrentSet()" class="w-full px-6 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-cream-300">
+            <button id="reset-current-set-btn" onclick="resetCurrentSet()" class="w-full px-6 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-cream-300">
               🔄 重置本轮复习
             </button>
-            <button onclick="loadNewSet()" class="w-full px-6 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95">
+            <button id="load-new-set-btn" onclick="loadNewSet()" class="w-full px-6 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95">
               📚 背诵下一套单词
             </button>
             <button onclick="closeCompletionModal(); goHome();" class="w-full px-6 py-3 bg-white hover:bg-cream-100 text-coffee-500 rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-cream-300">
