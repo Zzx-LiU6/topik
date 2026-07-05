@@ -393,6 +393,12 @@ async function renderHomeView() {
           📥 导入进度
         </button>
       </div>
+      <div class="flex justify-center gap-2 mb-4">
+        <button onclick="resetAllProgress()"
+                class="text-xs px-3 py-1 bg-red-50 hover:bg-red-100 rounded-full text-red-500 transition">
+          🗑 重置全部进度
+        </button>
+      </div>
 
       <!-- 功能模块 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -1244,6 +1250,19 @@ function confirmReset() {
   resetCurrentSet();
 }
 
+function resetAllProgress() {
+  if (window.confirm('确定要清空所有学习记录和收藏吗？此操作不可撤销。')) {
+    wordProgress = {};
+    bookmarkedWords = [];
+    state.currentSet = 1;
+    state.currentSetKey = '1';
+    state.currentIndex = 0;
+    state.currentQueue = [];
+    saveToStorage();
+    goHome();
+  }
+}
+
 // ========== 键盘支持 ==========
 function setupKeyboard() {
   document.addEventListener('keydown', async (e) => {
@@ -1371,6 +1390,7 @@ window.nextBookmarkWord = nextBookmarkWord;
 window.dismissCompletionModal = dismissCompletionModal;
 window.exportProgress = exportProgress;
 window.importProgress = importProgress;
+window.resetAllProgress = resetAllProgress;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
