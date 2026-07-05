@@ -1,4 +1,4 @@
-// TOPIK 韩语背单词 - 主程序 v5.2 (功能优化版)
+// TOPIK 韩语背单词 - 主程序 v6.0
 
 // ========== 全局词库数据 ==========
 let allVocabularySets = {};          // 词库对象，键为套装编号字符串
@@ -38,7 +38,7 @@ const elements = {};
 // ========== 核心异步加载函数 ==========
 async function loadVocabularyData() {
   try {
-    const response = await fetch('./data/vocabulary.json');
+    const response = await fetch('public/data/vocabulary.json');
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: 无法访问词库文件`);
     }
@@ -128,6 +128,28 @@ async function loadVocabularyData() {
 async function init() {
   await loadVocabularyData();
   loadFromStorage();
+  
+  // 如果词库已加载，检查 bookmarkedWords 是否为旧格式（id 包含 '-'），进行迁移
+  if (vocabularyLoaded && bookmarkedWords.length > 0 && typeof bookmarkedWords[0] === 'string' && bookmarkedWords[0].includes('-')) {
+    const migrated = [];
+    for (const item of bookmarkedWords) {
+      const setKey = getSetKeyFromWordId(item);
+      if (setKey && allVocabularySets[setKey]) {
+        const word = allVocabularySets[setKey].find(w => w.id === item);
+        if (word) migrated.push(word.korean);
+      }
+    }
+    if (migrated.length > 0) {
+      bookmarkedWords = migrated;
+      saveToStorage();
+      console.log('收藏格式已迁移到 korean');
+    } else {
+      // 如果旧收藏全都找不到对应单词，清空收藏本
+      bookmarkedWords = [];
+      saveToStorage();
+    }
+  }
+
   syncCurrentSetKey();
   setupElements();
   await renderCurrentView();
@@ -176,6 +198,44 @@ function saveToStorage() {
   } catch (e) {
     console.warn('保存存储失败:', e);
   }
+}
+
+function exportProgress() {
+  const data = {
+    wordProgress: wordProgress,
+    currentSet: state.currentSet,
+    bookmarkedWords: bookmarkedWords
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `topik_backup_${getToday()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importProgress() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (data.wordProgress) wordProgress = data.wordProgress;
+      if (data.currentSet) state.currentSet = data.currentSet;
+      if (data.bookmarkedWords) bookmarkedWords = data.bookmarkedWords;
+      saveToStorage();
+      alert('进度已导入，页面将刷新。');
+      location.reload();
+    } catch (err) {
+      alert('导入失败，请检查文件格式。');
+    }
+  };
+  input.click();
 }
 
 // ========== 日期工具 ==========
@@ -324,6 +384,15 @@ async function renderHomeView() {
         <h1 class="text-2xl md:text-3xl font-medium text-coffee-600 mb-2">TOPIK 韩语背单词</h1>
         <p class="text-sm text-coffee-400">科学记忆 · 高效备考 · ${totalSetCount}套词库</p>
       </header>
+      
+      <div class="flex justify-center gap-2 mb-4">
+        <button onclick="exportProgress()" class="text-xs px-3 py-1 bg-cream-200 hover:bg-cream-300 rounded-full text-coffee-500 transition">
+          📤 导出进度
+        </button>
+        <button onclick="importProgress()" class="text-xs px-3 py-1 bg-cream-200 hover:bg-cream-300 rounded-full text-coffee-500 transition">
+          📥 导入进度
+        </button>
+      </div>
 
       <!-- 功能模块 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -443,7 +512,7 @@ async function renderLearnView() {
     percent = Math.round((completed / total) * 100);
   }
 
-  const isBookmarked = bookmarkedWords.includes(currentWord.id);
+  const isBookmarked = bookmarkedWords.includes(currentWord.korean);
 
   const pageTitle = isReview ? '🔁 复习模式' :
                     (isBookmarks ? '⭐ 生词收藏本' : '📖 新词背诵');
@@ -604,6 +673,10 @@ async function renderOverviewView() {
     filteredWords = allWords.filter(w => getWordStatus(w.id) === 'mastered');
   } else if (state.selectedFilter === 'permanent') {
     filteredWords = allWords.filter(w => getWordStatus(w.id) === 'permanent');
+  } else if (state.selectedFilter === 'bookmarked') {  // ← 新增
+    filteredWords = allWords.filter(w => bookmarkedWords.includes(w.korean));
+  } else if (state.selectedFilter === 'bookmarked') {
+    filteredWords = allWords.filter(w => bookmarkedWords.includes(w.korean));
   }
 
   //【修改】应用搜索过滤
@@ -710,7 +783,10 @@ async function renderOverviewView() {
           今日已学 (${statusCount.mastered})
         </button>
         <button onclick="setFilter('permanent')" class="px-3 py-1.5 rounded-full text-sm transition-all ${state.selectedFilter === 'permanent' ? 'bg-green-500 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
-          永久掌握 (${statusCount.permanent})
+          已掌握 (${statusCount.permanent})
+        </button>
+        <button onclick="setFilter('bookmarked')" class="px-3 py-1.5 rounded-full text-sm transition-all ${state.selectedFilter === 'bookmarked' ? 'bg-yellow-500 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
+          已收藏 (${bookmarkedWords.length})
         </button>
       </div>
 
@@ -732,7 +808,7 @@ async function renderOverviewView() {
                  onclick="startLearnWord('${w.id}')">
               <div class="flex justify-between items-start mb-1">
                 <span class="font-medium text-coffee-600 text-sm">${w.korean}</span>
-                ${bookmarkedWords.includes(w.id) ? '<span class="text-yellow-500 text-xs">⭐</span>' : ''}
+                ${bookmarkedWords.includes(w.korean) ? '<span class="text-yellow-500 text-xs">⭐</span>' : ''}
               </div>
               <p class="text-xs text-coffee-400 mb-2">${w.meaning}</p>
               <span class="text-xs px-2 py-0.5 rounded-full ${statusBadgeClass}">${statusText}</span>
@@ -747,11 +823,14 @@ async function renderOverviewView() {
 // ========== 生词收藏本页面（异步） ==========
 async function getBookmarkedWords() {
   const words = [];
-  for (const wordId of bookmarkedWords) {
-    const setKey = getSetKeyFromWordId(wordId);
-    if (setKey && allVocabularySets[setKey]) {
-      const word = allVocabularySets[setKey].find(w => w.id === wordId);
-      if (word) words.push(word);
+  for (const kw of bookmarkedWords) { // 现在 bookmarkedWords 里是韩文单词字符串
+    // 在所有套装中寻找匹配的单词（取第一个匹配即可）
+    for (const setKey of sortedSetKeys) {
+      const word = allVocabularySets[setKey]?.find(w => w.korean === kw);
+      if (word) {
+        words.push(word);
+        break; // 找到一个就跳出，避免重复添加
+      }
     }
   }
   return words;
@@ -796,7 +875,7 @@ async function renderBookmarksView() {
 async function renderWordDetailView(targetWord) {
   const word = targetWord;
   const status = getWordStatus(word.id);
-  const isBookmarked = bookmarkedWords.includes(word.id);
+  const isBookmarked = bookmarkedWords.includes(word.korean);
 
   elements.app.innerHTML = `
     <div>
@@ -950,11 +1029,23 @@ async function handleAction(action) {
 }
 
 function toggleBookmark(wordId) {
-  const index = bookmarkedWords.indexOf(wordId);
+  // 遍历所有套装，查找 id 匹配的单词对象
+  let word = null;
+  for (const setKey of sortedSetKeys) {
+    const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
+    if (found) {
+      word = found;
+      break;
+    }
+  }
+  if (!word) return; // 没找到对应的单词，不执行收藏操作
+
+  const kw = word.korean; // 使用韩文单词作为收藏标识
+  const index = bookmarkedWords.indexOf(kw);
   if (index > -1) {
     bookmarkedWords.splice(index, 1);
   } else {
-    bookmarkedWords.push(wordId);
+    bookmarkedWords.push(kw);
   }
   saveToStorage();
   renderCurrentView();
@@ -975,12 +1066,15 @@ function debounceSearch(keyword) {
 
 // 总览点击单词：打开独立详情页，不进入背诵、不会弹出完成弹窗
 async function startLearnWord(wordId) {
-  const setKey = getSetKeyFromWordId(wordId);
-  if (!setKey || !allVocabularySets[setKey]) {
-    goHome();
-    return;
+  // 遍历所有套装，找到匹配的单词
+  let word = null;
+  for (const setKey of sortedSetKeys) {
+    const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
+    if (found) {
+      word = found;
+      break;
+    }
   }
-  const word = allVocabularySets[setKey].find(w => w.id === wordId);
   if (!word) {
     goHome();
     return;
@@ -1093,6 +1187,11 @@ function closeCompletionModal() {
   }
 }
 
+function dismissCompletionModal() {
+  closeCompletionModal();
+  goHome();   // 直接返回首页，避免卡在空白进度页
+}
+
 function resetCurrentSet() {
   const words = allVocabularySets[state.currentSetKey] || [];
   words.forEach(w => delete wordProgress[w.id]);
@@ -1153,32 +1252,78 @@ function setupKeyboard() {
 
     switch (e.key) {
       case ' ':
-      case 'Enter':
         e.preventDefault();
         flipCard();
         break;
-      case '1':
+      case 'Enter':
+        e.preventDefault();
+            flipCard();
+        break;
+      case 'r':
+      case 'R':
+        e.preventDefault();
         handleAction('review');
         break;
-      case '2':
+      case 'm':
+      case 'M':
+        e.preventDefault();
         handleAction('mastered');
+        break;
+      case 'p':
+      case 'P':
+        e.preventDefault();
+        handleAction('permanent');
+       break;
+      case 'd':
+      case 'D':
+      case 's':
+      case 'S':
+        e.preventDefault();
+        {
+          let queue;
+          if (state.currentView === 'bookmarks') {
+            queue = state.currentQueue;
+          } else if (state.mode === 'review') {
+            queue = await getWordsToReviewToday();
+          } else {
+            queue = state.currentQueue;
+          }
+          if (queue[state.currentIndex]) {
+            speakWord(queue[state.currentIndex].korean);
+          }
+        }
+        break;
+      case 'b':
+      case 'B':
+        e.preventDefault();
+        {
+          let q;
+          if (state.currentView === 'bookmarks') {
+            q = state.currentQueue;
+          } else if (state.mode === 'review') {
+            q = await getWordsToReviewToday();
+          } else {
+            q = state.currentQueue;
+          }
+          if (q[state.currentIndex]) {
+            toggleBookmark(q[state.currentIndex].id);
+          }
+        }
+        break;
+      case 'ArrowLeft':
+        if (state.currentView === 'bookmarks') {
+          e.preventDefault();
+          prevBookmarkWord();
+        }
+        break;
+      case 'ArrowRight':
+        if (state.currentView === 'bookmarks') {
+          e.preventDefault();
+          nextBookmarkWord();
+        }
         break;
       case 'Escape':
         goHome();
-        break;
-      case 's':
-      case 'S':
-        let queue;
-        if (state.currentView === 'bookmarks') {
-          queue = state.currentQueue;
-        } else if (state.mode === 'review') {
-          queue = await getWordsToReviewToday();
-        } else {
-          queue = state.currentQueue;
-        }
-        if (queue[state.currentIndex]) {
-          speakWord(queue[state.currentIndex].korean);
-        }
         break;
     }
   });
@@ -1224,6 +1369,9 @@ window.showResetConfirm = showResetConfirm;
 window.confirmReset = confirmReset;
 window.prevBookmarkWord = prevBookmarkWord;
 window.nextBookmarkWord = nextBookmarkWord;
+window.dismissCompletionModal = dismissCompletionModal;
+window.exportProgress = exportProgress;
+window.importProgress = importProgress;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
