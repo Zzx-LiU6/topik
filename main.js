@@ -968,6 +968,7 @@ async function handleAction(action) {
   }
 
   const currentWord = queue[state.currentIndex];
+  console.log('handleAction', action, currentWord?.id, '进度写入前:', JSON.stringify(wordProgress));
   if (!currentWord) return;
 
   const today = getToday();
