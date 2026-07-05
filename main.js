@@ -509,6 +509,7 @@ async function renderLearnView() {
   } else {
     // 新词模式：用套装已完成数
     completed = await getCompletedCountForSet(state.currentSetKey);
+    console.log('进度计算', { completed, total, setKey: state.currentSetKey, wordProgressKeys: Object.keys(wordProgress) });
     percent = Math.round((completed / total) * 100);
   }
 
