@@ -268,15 +268,15 @@ async function getWordsToReviewToday() {
   const reviewWords = [];
 
   for (const [wordId, progress] of Object.entries(wordProgress)) {
-    if (progress.status === 'permanent') continue;
+    if (progress.status !== 'mastered') continue;
+    if (!progress.nextReviewDate || progress.nextReviewDate > today) continue;
 
-    if (progress.status === 'mastered' && progress.nextReviewDate) {
-      if (progress.nextReviewDate <= today) {
-        const setKey = getSetKeyFromWordId(wordId);
-        if (setKey && allVocabularySets[setKey]) {
-          const word = allVocabularySets[setKey].find(w => w.id === wordId);
-          if (word) reviewWords.push({ ...word, progress });
-        }
+    // 遍历所有套装找到该单词
+    for (const setKey of sortedSetKeys) {
+      const word = allVocabularySets[setKey]?.find(w => w.id === wordId);
+      if (word) {
+        reviewWords.push({ ...word, progress });
+        break; // 找到就跳出内层循环
       }
     }
   }
