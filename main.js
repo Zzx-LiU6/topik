@@ -1019,10 +1019,20 @@ async function handleAction(action) {
     if (state.currentIndex >= queue.length) {
       state.currentIndex = 0;
     }
-  } else if (action === 'review') {
-    queue.splice(state.currentIndex, 1);
-    queue.push(currentWord);
-  }
+   } else if (action === 'review') {
+       // 标记今天复习过
+       if (wordProgress[currentWord.id]) {
+         wordProgress[currentWord.id].lastStudiedDate = today;
+       } else {
+         // 如果之前没有任何记录，则创建一个基础记录
+         wordProgress[currentWord.id] = {
+           status: 'new',
+           lastStudiedDate: today
+         };
+       }
+       queue.splice(state.currentIndex, 1);
+       queue.push(currentWord);
+     }
 
   saveToStorage();
   resetCard();
