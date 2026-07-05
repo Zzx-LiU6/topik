@@ -1,4 +1,4 @@
-// TOPIK - 主程序 v6.6
+// TOPIK - 主程序 v10.0
 
 // ========== 全局词库数据 ==========
 let allVocabularySets = {};          // 词库对象，键为套装编号字符串
@@ -1397,8 +1397,7 @@ function showSpellResumeDialog(newMode, savedState) {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
       overlay.remove();
-      localStorage.removeItem('topik_spell_state');
-      startSpell(newMode);
+      // 不删除存档，也不自动开始新测验，让用户下次再选择
     }
   });
 }
@@ -1676,8 +1675,7 @@ function showQuizResumeDialog(newMode, savedState) {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
       overlay.remove();
-      localStorage.removeItem('topik_quiz_state');
-      startQuiz(newMode);
+      // 不删除存档，也不自动开始新拼写
     }
   });
 }
