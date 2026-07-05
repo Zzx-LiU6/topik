@@ -34,6 +34,10 @@ let state = {
   calendarYear: new Date().getFullYear(),
   calendarMonth: new Date().getMonth() + 1,
   selectedDate: null,
+  spellWords: [],
+  spellIndex: 0,
+  spellScore: 0,
+  spellResults: [],
   darkMode: false
 };
 
@@ -350,6 +354,7 @@ async function renderCurrentView() {
     case 'wordDetail': await renderWordDetailView(state.targetWord); break;
     case 'quiz': await renderQuizView(); break;
     case 'wrong': await renderWrongView(); break;
+    case 'spell': await renderSpellView(); break;
     case 'calendar': await renderCalendarView(); break;
   }
 }
@@ -465,19 +470,41 @@ async function renderHomeView() {
         </div>
 
         <!-- 测验·错题 -->
-        <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+        <div class="home-card 
+          bg-white dark:bg-[#1a3654] 
+          rounded-3xl p-5 shadow-md dark:shadow-none 
+          border border-cream-300 dark:border-slate-700 
+          transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <div class="flex items-start justify-between mb-3">
             <div class="text-3xl">🎯</div>
           </div>
-          <h2 class="text-lg font-medium text-coffee-600 mb-3">测验·错题</h2>
-          <div class="flex gap-2">
-            <button onclick="showQuizModePicker()" class="flex-1 px-4 py-2.5 bg-coffee-400 hover:bg-coffee-500 text-white text-sm font-medium rounded-2xl transition-all duration-200 hover:shadow-md active:scale-95">
-              开始测验
+          <h2 class="text-lg font-medium text-coffee-600 dark:text-slate-100 mb-3">测验·拼写</h2>
+          <div class="flex gap-2 mb-2">
+            <!-- 选择按钮 -->
+            <button onclick="showQuizModePicker()" class="flex-1 px-4 py-2.5 
+              bg-coffee-400 dark:bg-[#a8997e] 
+              hover:bg-coffee-500 dark:hover:bg-[#b8a88c] 
+              text-white text-sm font-medium rounded-2xl transition-all duration-200">
+              📝 选择
             </button>
-            <button onclick="goToWrongWords()" class="flex-1 px-4 py-2.5 bg-cream-200 hover:bg-cream-300 text-coffee-600 text-sm font-medium rounded-2xl transition-all duration-200 border border-cream-300 active:scale-95 ${state.wrongWords.length === 0 ? 'opacity-50' : ''}">
-              错题集 ${state.wrongWords.length > 0 ? `(${state.wrongWords.length})` : ''}
+            <!-- 拼写按钮 -->
+            <button onclick="showSpellModePicker()" class="flex-1 px-4 py-2.5 
+              bg-cream-200 dark:bg-[#27243b] 
+              hover:bg-cream-300 dark:hover:bg-[#332f4c] 
+              text-coffee-600 dark:text-slate-100 text-sm font-medium rounded-2xl transition-all duration-200 
+              border border-cream-300 dark:border-slate-600">
+              ✍️ 拼写
             </button>
           </div>
+          <!-- 错题集按钮 -->
+          <button onclick="goToWrongWords()" class="w-full px-4 py-2.5
+          bg-amber-100 dark:bg-[#223a4e]
+          hover:bg-amber-200 dark:hover:bg-[#2b475e]
+          text-amber-700 dark:text-[#d4b878] text-sm font-medium rounded-2xl transition-all duration-200
+          border border-amber-300 dark:border-[#d4b878]
+          ${state.wrongWords.length === 0 ? 'opacity-50' : ''}">
+          📝 错题集 ${state.wrongWords.length > 0 ? `(${state.wrongWords.length})` : ''}
+        </button>
         </div>
 
         <!-- 生词收藏本 -->
@@ -1265,6 +1292,245 @@ function showQuizModePicker() {
       onQuizModeSelected(mode);   // 不直接开始，先检查存档
     });
   });
+}
+
+function showSpellModePicker() {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-coffee-600/30 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 w-[90%] max-w-sm border border-cream-300 fade-in">
+      <h3 class="text-lg font-medium text-coffee-600 text-center mb-4">选择拼写范围</h3>
+      <div class="space-y-3">
+        <button class="spell-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="today">
+          <div class="font-medium text-coffee-600">📖 今日学习 <span class="text-xs text-green-500 ml-1">推荐</span></div>
+          <div class="text-xs text-coffee-400 mt-0.5">当前套装 + 待复习词汇</div>
+        </button>
+        <button class="spell-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="primary">
+          <div class="font-medium text-coffee-600">📗 初级专练</div>
+          <div class="text-xs text-coffee-400 mt-0.5">仅初级词汇 (set 1-90)</div>
+        </button>
+        <button class="spell-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="intermediate">
+          <div class="font-medium text-coffee-600">📘 中级专练</div>
+          <div class="text-xs text-coffee-400 mt-0.5">仅中级词汇 (set 91-272)</div>
+        </button>
+        <button class="spell-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="all">
+          <div class="font-medium text-coffee-600">🌐 全部混合</div>
+          <div class="text-xs text-coffee-400 mt-0.5">所有未掌握词汇</div>
+        </button>
+      </div>
+      <button class="w-full mt-4 px-4 py-2 bg-cream-200 hover:bg-cream-300 text-coffee-500 rounded-xl text-sm transition-colors" id="cancel-spell-picker">
+        取消
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  overlay.querySelector('#cancel-spell-picker').addEventListener('click', () => overlay.remove());
+  overlay.querySelectorAll('.spell-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      overlay.remove();
+      startSpell(mode);
+    });
+  });
+}
+
+function startSpell(mode) {
+  // 复用 startQuiz 的选词逻辑
+  let words = [];
+  const today = getToday();
+
+  const currentSetWords = (allVocabularySets[state.currentSetKey] || []).filter(w => {
+    const p = wordProgress[w.id];
+    return !p || p.status !== 'permanent';
+  });
+
+  const reviewWords = [];
+  for (const [wordId, progress] of Object.entries(wordProgress)) {
+    if (progress.status === 'mastered' && progress.nextReviewDate && progress.nextReviewDate <= today) {
+      for (const setKey of sortedSetKeys) {
+        const w = allVocabularySets[setKey]?.find(w => w.id === wordId);
+        if (w && !reviewWords.some(rw => rw.id === w.id)) { reviewWords.push(w); break; }
+      }
+    }
+  }
+
+  const primaryWords = [];
+  const intermediateWords = [];
+  for (const setKey of sortedSetKeys) {
+    const setNumber = parseInt(setKey, 10);
+    const ws = (allVocabularySets[setKey] || []).filter(w => {
+      const p = wordProgress[w.id];
+      return !p || p.status !== 'permanent';
+    });
+    if (setNumber <= 90) primaryWords.push(...ws);
+    else intermediateWords.push(...ws);
+  }
+
+  switch (mode) {
+    case 'today':
+      const todayMap = new Map();
+      currentSetWords.forEach(w => todayMap.set(w.id, w));
+      reviewWords.forEach(w => todayMap.set(w.id, w));
+      words = Array.from(todayMap.values());
+      break;
+    case 'primary': words = primaryWords; break;
+    case 'intermediate': words = intermediateWords; break;
+    case 'all': words = [...primaryWords, ...intermediateWords]; break;
+    default: words = currentSetWords;
+  }
+
+  if (words.length === 0) {
+    showToast('没有可练习的单词，请先学习一些单词。', 2000);
+    return;
+  }
+
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  state.spellWords = shuffled.slice(0, Math.min(10, shuffled.length));
+  state.spellIndex = 0;
+  state.spellScore = 0;
+  state.spellResults = []; // { word, userAnswer, isCorrect }
+  state.currentView = 'spell';
+  renderCurrentView();
+}
+
+async function renderSpellView() {
+  if (!state.spellWords || state.spellWords.length === 0) { goHome(); return; }
+  if (state.spellIndex >= state.spellWords.length) { renderSpellResult(); return; }
+
+  const currentWord = state.spellWords[state.spellIndex];
+  const lastResult = state.spellResults[state.spellResults.length - 1];
+
+  elements.app.innerHTML = `
+    <div>
+      <header class="mb-6">
+        <div class="flex items-center justify-between">
+          <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            返回首页
+          </button>
+          <button onclick="saveSpellAndExit()" class="text-xs px-3 py-1 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-full transition">
+            💾 保存并退出
+          </button>
+        </div>
+      </header>
+
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h1 class="text-lg font-medium text-coffee-600">✍️ 拼写挑战</h1>
+          <span class="text-sm text-coffee-400">第 ${state.spellIndex + 1}/${state.spellWords.length} 题</span>
+        </div>
+        <div class="bg-cream-300 rounded-full h-3 overflow-hidden shadow-inner">
+          <div class="h-full bg-gradient-to-r from-coffee-400 to-coffee-500 rounded-full transition-all duration-500" style="width: ${(state.spellIndex / state.spellWords.length) * 100}%"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
+        <p class="text-center text-coffee-400 text-sm mb-2">다음 뜻에 해당하는 한국어 단어는?</p>
+        <p class="text-center text-3xl font-medium text-coffee-600 mb-8">${currentWord.meaning}</p>
+        ${lastResult ? `
+        <div class="mb-4 p-3 rounded-xl ${lastResult.isCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'} text-sm text-center">
+          ${lastResult.isCorrect ? '✅ 上一题正确！' : `❌ 上一题错误！正确答案：${lastResult.word.korean}`}
+        </div>` : ''}
+        <input type="text" id="spell-input" autocomplete="off" autofocus
+               class="w-full px-4 py-3 bg-cream-50 border border-cream-300 rounded-xl text-coffee-600 text-lg text-center focus:outline-none focus:border-coffee-400 transition-colors"
+               placeholder="输入韩文单词...">
+        <button onclick="submitSpellAnswer()" class="w-full mt-3 px-4 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all">
+          提交
+        </button>
+      </div>
+    </div>
+  `;
+
+  // 自动聚焦输入框
+  setTimeout(() => {
+    const input = document.getElementById('spell-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+function submitSpellAnswer() {
+  const input = document.getElementById('spell-input');
+  if (!input) return;
+  const userAnswer = input.value.trim();
+  if (!userAnswer) { showToast('请输入韩文单词', 1500); return; }
+
+  const currentWord = state.spellWords[state.spellIndex];
+  const isCorrect = userAnswer === currentWord.korean;
+
+  state.spellResults.push({ word: currentWord, userAnswer, isCorrect });
+  if (isCorrect) state.spellScore++;
+
+  state.spellIndex++;
+  if (state.spellIndex < state.spellWords.length) {
+    renderCurrentView();
+  } else {
+    renderSpellResult();
+  }
+}
+
+function renderSpellResult() {
+  const total = state.spellWords.length;
+  const score = state.spellScore;
+  const wrongResults = state.spellResults.filter(r => !r.isCorrect);
+
+  // 错词加入错题集
+  wrongResults.forEach(r => {
+    if (!state.wrongWords.includes(r.word.korean)) {
+      state.wrongWords.push(r.word.korean);
+    }
+  });
+
+  elements.app.innerHTML = `
+    <div>
+      <header class="mb-6">
+        <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          返回首页
+        </button>
+      </header>
+
+      <div class="text-center mb-8">
+        <div class="text-5xl mb-4">${score === total ? '🏆' : score >= total/2 ? '👍' : '📚'}</div>
+        <h1 class="text-2xl font-medium text-coffee-600 mb-2">拼写完成！</h1>
+        <p class="text-lg text-coffee-400">共 ${total} 题，拼对 <span class="text-coffee-600 font-bold">${score}</span> 题</p>
+        <p class="text-sm text-coffee-300 mt-1">正确率 ${Math.round((score/total)*100)}%</p>
+      </div>
+
+      ${wrongResults.length > 0 ? `
+      <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
+        <h3 class="text-base font-medium text-coffee-600 mb-3">📝 需要复习的单词</h3>
+        <div class="space-y-2">
+          ${wrongResults.map(r => `
+            <div class="p-3 bg-cream-50 rounded-xl">
+              <div class="flex items-center justify-between">
+                <span class="font-medium text-coffee-600">${r.word.korean}</span>
+                <span class="text-sm text-coffee-400">${r.word.meaning}</span>
+              </div>
+              <p class="text-xs text-red-400 mt-1">你的输入：${r.userAnswer}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : `
+      <div class="text-center py-8 text-coffee-400"><p class="text-lg">🎉 全部拼对，太棒了！</p></div>
+      `}
+
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button onclick="startSpell('today')" class="px-6 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all">再来一次</button>
+        ${state.wrongWords.length > 0 ? `<button onclick="goToWrongWords()" class="px-6 py-3 bg-red-400 hover:bg-red-500 text-white rounded-2xl font-medium transition-all">📝 错题集 (${state.wrongWords.length})</button>` : ''}
+        <button onclick="goHome()" class="px-6 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all">返回首页</button>
+      </div>
+    </div>
+  `;
+}
+
+function saveSpellAndExit() {
+  // 拼写模式暂不保存进度（每次只抽10题，很快做完）
+  goHome();
 }
 
 function onQuizModeSelected(mode) {
@@ -2250,6 +2516,15 @@ function setupKeyboard() {
           nextBookmarkWord();
         }
         break;
+      case 'Enter':
+        if (state.currentView === 'spell') {
+          e.preventDefault();
+          submitSpellAnswer();
+          break;
+        }
+        e.preventDefault();
+        flipCard();
+        break;
       case 'Escape':
         goHome();
         break;
@@ -2315,6 +2590,10 @@ window.saveQuizAndExit = saveQuizAndExit;
 window.onQuizModeSelected = onQuizModeSelected;
 window.showQuizResumeDialog = showQuizResumeDialog;
 window.toggleDarkMode = toggleDarkMode;
+window.showSpellModePicker = showSpellModePicker;
+window.startSpell = startSpell;
+window.submitSpellAnswer = submitSpellAnswer;
+window.saveSpellAndExit = saveSpellAndExit;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
@@ -2325,50 +2604,55 @@ if ('speechSynthesis' in window) {
 // ========== 样式注入 ==========
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
-  :root {
-    --bg-primary: #FFF9F0;
-    --bg-secondary: #FFFEFA;
-    --bg-card: #FFFFFF;
-    --bg-card-hover: #FFF5E6;
-    --bg-muted: #F5EBE0;
-    --bg-overlay: rgba(107, 91, 69, 0.3);
-    --text-primary: #6B5B45;
-    --text-secondary: #8B7355;
-    --text-muted: #B8A89A;
-    --text-on-primary: #FFFFFF;
-    --border-color: #F5EBE0;
-    --border-strong: #E8DDD4;
-    --shadow-color: rgba(107, 91, 69, 0.08);
-    --accent-coffee: #8B7355;
-    --accent-green: #22C55E;
-    --accent-amber: #F59E0B;
-    --accent-red: #EF4444;
-    --accent-blue: #60A5FA;
-    --accent-purple: #A78BFA;
-    --progress-bg: #F5EBE0;
-  }
+:root {
+  --bg-primary: #FFF9F0;
+  --bg-secondary: #FFFEFA;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FFF5E6;
+  --bg-muted: #F5EBE0;
+  --bg-overlay: rgba(107, 91, 69, 0.3);
+  --text-primary: #6B5B45;
+  --text-secondary: #8B7355;
+  --text-muted: #B8A89A;
+  --text-on-primary: #FFFFFF;
+  --border-color: #F5EBE0;
+  --border-strong: #E8DDD4;
+  --shadow-color: rgba(107, 91, 69, 0.08);
+  --accent-coffee: #8B7355;
+  --accent-green: #22C55E;
+  --accent-amber: #c97f47;
+  --accent-red: #EF4444;
+  --accent-blue: #60A5FA;
+  --accent-purple: #A78BFA;
+  --progress-bg: #F5EBE0;
+  /* 错题按钮底色 */
+  --bg-amber-100: #ffe9d8;
+  --bg-amber-200: #ffd9bc;
+}
 
   body.dark {
-    --bg-primary: #1A1A2E;
-    --bg-secondary: #16213E;
-    --bg-card: #0F3460;
-    --bg-card-hover: #1A1A40;
-    --bg-muted: #2A2A4A;
+    --bg-primary: #103050;
+    --bg-secondary: #14385c;
+    --bg-card: #1a3654;
+    --bg-card-hover: #204062;
+    --bg-muted: #2b2742;
     --bg-overlay: rgba(0, 0, 0, 0.6);
-    --text-primary: #E0D5C1;
-    --text-secondary: #C9B8A8;
-    --text-muted: #9A8A7A;
+    --text-primary: #f0e6d8;
+    --text-secondary: #d1c2b0;
+    --text-muted: #a09080;
     --text-on-primary: #FFFFFF;
-    --border-color: #2A2A4A;
-    --border-strong: #3A3A5A;
+    --border-color: #364b63;
+    --border-strong: #475569;
     --shadow-color: rgba(0, 0, 0, 0.3);
-    --accent-coffee: #A89880;
+    --accent-coffee: #b4a386;
     --accent-green: #4ADE80;
-    --accent-amber: #FBBF24;
+    --accent-amber: #f0c987;
     --accent-red: #F87171;
     --accent-blue: #818CF8;
-    --accent-purple: #C084FC;
-    --progress-bg: #2A2A4A;
+    --accent-purple: #403c58;
+    --progress-bg: #2a3f58;    /* 错题按钮深色底色 */
+    --bg-amber-100: #253f57;
+    --bg-amber-200: #304c68;
   }
 
   /* 全局应用变量 */
@@ -2410,7 +2694,6 @@ styleSheet.textContent = `
   .bg-purple-400 { background-color: var(--accent-purple) !important; }
   .bg-yellow-100 { background-color: rgba(251, 191, 36, 0.2) !important; }
   .bg-green-100 { background-color: rgba(34, 197, 94, 0.2) !important; }
-  .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
   .bg-cream-50 { background-color: var(--bg-card-hover) !important; }
   .bg-coffee-50 { background-color: rgba(139, 115, 85, 0.1) !important; }
   .bg-amber-50 { background-color: rgba(245, 158, 11, 0.1) !important; }
