@@ -33,7 +33,8 @@ let state = {
   wrongViewMode: 'list',
   calendarYear: new Date().getFullYear(),
   calendarMonth: new Date().getMonth() + 1,
-  selectedDate: null
+  selectedDate: null,
+  darkMode: false
 };
 
 // 单词进度数据
@@ -140,6 +141,13 @@ async function loadVocabularyData() {
 async function init() {
   await loadVocabularyData();
   loadFromStorage();
+
+  // 读取夜间模式偏好
+  const savedDarkMode = localStorage.getItem('topik_dark_mode');
+  if (savedDarkMode === 'true') {
+    state.darkMode = true;
+    document.body.classList.add('dark');
+  }
   
   // 如果词库已加载，检查 bookmarkedWords 是否为旧格式（id 包含 '-'），进行迁移
   if (vocabularyLoaded && bookmarkedWords.length > 0 && typeof bookmarkedWords[0] === 'string' && bookmarkedWords[0].includes('-')) {
@@ -407,7 +415,10 @@ async function renderHomeView() {
       <header class="text-center mb-8">
         <h1 class="text-2xl md:text-3xl font-medium text-coffee-600 mb-2">TOPIK 韩语背单词</h1>
         <p class="text-sm text-coffee-400">科学记忆 · 高效备考 · ${totalSetCount}套词库</p>
-      </header>
+        <button onclick="toggleDarkMode()" class="mt-2 text-xs px-3 py-1 rounded-full bg-cream-200 hover:bg-cream-300 text-coffee-500 transition">
+          ${state.darkMode ? '☀️ 日间模式' : '🌙 夜间模式'}
+        </button>
+        </header>
       
       <div class="flex justify-center gap-2 mb-4">
         <button onclick="exportProgress()" class="text-xs px-3 py-1 bg-cream-200 hover:bg-cream-300 rounded-full text-coffee-500 transition">
@@ -2151,6 +2162,17 @@ function resetAllProgress() {
   }
 }
 
+function toggleDarkMode() {
+  state.darkMode = !state.darkMode;
+  if (state.darkMode) {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+  localStorage.setItem('topik_dark_mode', state.darkMode.toString());
+  renderCurrentView(); // 重新渲染以更新按钮图标
+}
+
 // ========== 键盘支持 ==========
 function setupKeyboard() {
   document.addEventListener('keydown', async (e) => {
@@ -2292,6 +2314,7 @@ window.showQuizModePicker = showQuizModePicker;
 window.saveQuizAndExit = saveQuizAndExit;
 window.onQuizModeSelected = onQuizModeSelected;
 window.showQuizResumeDialog = showQuizResumeDialog;
+window.toggleDarkMode = toggleDarkMode;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
@@ -2302,6 +2325,124 @@ if ('speechSynthesis' in window) {
 // ========== 样式注入 ==========
 const styleSheet = document.createElement('style');
 styleSheet.textContent = `
+  :root {
+    --bg-primary: #FFF9F0;
+    --bg-secondary: #FFFEFA;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #FFF5E6;
+    --bg-muted: #F5EBE0;
+    --bg-overlay: rgba(107, 91, 69, 0.3);
+    --text-primary: #6B5B45;
+    --text-secondary: #8B7355;
+    --text-muted: #B8A89A;
+    --text-on-primary: #FFFFFF;
+    --border-color: #F5EBE0;
+    --border-strong: #E8DDD4;
+    --shadow-color: rgba(107, 91, 69, 0.08);
+    --accent-coffee: #8B7355;
+    --accent-green: #22C55E;
+    --accent-amber: #F59E0B;
+    --accent-red: #EF4444;
+    --accent-blue: #60A5FA;
+    --accent-purple: #A78BFA;
+    --progress-bg: #F5EBE0;
+  }
+
+  body.dark {
+    --bg-primary: #1A1A2E;
+    --bg-secondary: #16213E;
+    --bg-card: #0F3460;
+    --bg-card-hover: #1A1A40;
+    --bg-muted: #2A2A4A;
+    --bg-overlay: rgba(0, 0, 0, 0.6);
+    --text-primary: #E0D5C1;
+    --text-secondary: #C9B8A8;
+    --text-muted: #9A8A7A;
+    --text-on-primary: #FFFFFF;
+    --border-color: #2A2A4A;
+    --border-strong: #3A3A5A;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --accent-coffee: #A89880;
+    --accent-green: #4ADE80;
+    --accent-amber: #FBBF24;
+    --accent-red: #F87171;
+    --accent-blue: #818CF8;
+    --accent-purple: #C084FC;
+    --progress-bg: #2A2A4A;
+  }
+
+  /* 全局应用变量 */
+  body {
+    background: linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary));
+    color: var(--text-primary);
+  }
+
+  #app {
+    color: var(--text-primary);
+  }
+
+  .home-card {
+    background: var(--bg-card);
+    border-color: var(--border-strong);
+    box-shadow: 0 4px 6px var(--shadow-color);
+  }
+
+  .home-card:hover {
+    box-shadow: 0 10px 20px var(--shadow-color);
+  }
+
+  button {
+    color: inherit;
+  }
+
+  /* 原来的其他样式保持不变，但把颜色相关换成变量 */
+  .bg-cream-100 { background-color: var(--bg-primary) !important; }
+  .bg-cream-200 { background-color: var(--bg-muted) !important; }
+  .bg-cream-300 { background-color: var(--border-color) !important; }
+  .bg-white { background-color: var(--bg-card) !important; }
+  .bg-coffee-400 { background-color: var(--accent-coffee) !important; }
+  .bg-coffee-500 { background-color: var(--text-secondary) !important; }
+  .bg-green-500 { background-color: var(--accent-green) !important; }
+  .bg-amber-500 { background-color: var(--accent-amber) !important; }
+  .bg-red-400 { background-color: var(--accent-red) !important; }
+  .bg-red-50 { background-color: rgba(239, 68, 68, 0.1) !important; }
+  .bg-blue-400 { background-color: var(--accent-blue) !important; }
+  .bg-purple-400 { background-color: var(--accent-purple) !important; }
+  .bg-yellow-100 { background-color: rgba(251, 191, 36, 0.2) !important; }
+  .bg-green-100 { background-color: rgba(34, 197, 94, 0.2) !important; }
+  .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+  .bg-cream-50 { background-color: var(--bg-card-hover) !important; }
+  .bg-coffee-50 { background-color: rgba(139, 115, 85, 0.1) !important; }
+  .bg-amber-50 { background-color: rgba(245, 158, 11, 0.1) !important; }
+  .bg-green-50 { background-color: rgba(34, 197, 94, 0.1) !important; }
+  .bg-purple-50 { background-color: rgba(167, 139, 250, 0.1) !important; }
+
+  .text-coffee-600 { color: var(--text-primary) !important; }
+  .text-coffee-500 { color: var(--text-secondary) !important; }
+  .text-coffee-400 { color: var(--text-muted) !important; }
+  .text-coffee-300 { color: var(--text-muted) !important; }
+  .text-white { color: var(--text-on-primary) !important; }
+  .text-green-600 { color: var(--accent-green) !important; }
+  .text-amber-600 { color: var(--accent-amber) !important; }
+  .text-red-500 { color: var(--accent-red) !important; }
+  .text-yellow-600 { color: #D97706 !important; }
+  .text-blue-600 { color: var(--accent-blue) !important; }
+  .text-purple-600 { color: var(--accent-purple) !important; }
+
+  .border-cream-300 { border-color: var(--border-color) !important; }
+  .border-cream-200 { border-color: var(--border-strong) !important; }
+
+  .from-cream-100 { --tw-gradient-from: var(--bg-primary); }
+  .to-cream-200 { --tw-gradient-to: var(--bg-secondary); }
+  .from-coffee-400 { --tw-gradient-from: var(--accent-coffee); }
+  .to-coffee-500 { --tw-gradient-to: var(--text-secondary); }
+
+  .bg-gradient-to-b {
+    background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+  }
+
+  /* 保留原来的动画等样式... (不需要改动) */
+
   .flashcard {
     transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
     transform-style: preserve-3d;
@@ -2327,15 +2468,15 @@ styleSheet.textContent = `
   @media (hover: hover) and (pointer: fine) {
     #flashcard:hover .flashcard-front.card-hover {
       transform: translateY(-6px);
-      box-shadow: 0 20px 40px rgba(107, 91, 69, 0.15);
+      box-shadow: 0 20px 40px var(--shadow-color);
     }
     #flashcard:hover .flashcard-back.card-hover {
       transform: translateY(-6px) rotateY(180deg);
-      box-shadow: 0 20px 40px rgba(107, 91, 69, 0.15);
+      box-shadow: 0 20px 40px var(--shadow-color);
     }
   }
   .speaker-btn:hover svg {
-    color: #8B7355;
+    color: var(--text-secondary);
   }
   .speaker-wrapper {
     z-index: 20;
@@ -2371,6 +2512,16 @@ styleSheet.textContent = `
   #search-input {
     transform: translateZ(0);
     will-change: border-color;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+  }
+  #search-input::placeholder {
+    color: var(--text-muted);
+  }
+  /* Toast 提示背景 */
+  .toast-bg {
+    background: var(--text-secondary);
   }
 `;
 document.head.appendChild(styleSheet);
