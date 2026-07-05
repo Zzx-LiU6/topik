@@ -825,6 +825,17 @@ async function renderOverviewView() {
       </div>
 
       <!--【修改】词汇列表 - 卡片可点击进入背诵 -->
+      ${filteredWords.length === 0 ? `
+        <div class="text-center py-12 bg-white rounded-3xl border border-cream-300 shadow-sm">
+          <div class="flex justify-center mb-4">
+            <svg class="w-12 h-12 text-cream-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <h4 class="text-coffee-500 font-medium mb-2">暂无匹配单词</h4>
+          <p class="text-sm text-coffee-400">请更换关键词</p>
+        </div>
+      ` : `
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         ${filteredWords.map(w => {
           const status = getWordStatus(w.id);
@@ -850,6 +861,7 @@ async function renderOverviewView() {
           `;
         }).join('')}
       </div>
+      `}
     </div>
   `;
 }
@@ -1189,6 +1201,7 @@ function resetCard() {
 
 // ========== 语音朗读 ==========
 function speakWord(text) {
+  // 方案一：尝试浏览器原生 TTS
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -1198,10 +1211,65 @@ function speakWord(text) {
 
     const voices = window.speechSynthesis.getVoices();
     const koreanVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('Korean'));
-    if (koreanVoice) utterance.voice = koreanVoice;
+    if (koreanVoice) {
+      utterance.voice = koreanVoice;
+    }
+
+    // 设置一个超时检测：如果 1 秒后还没开始播放，说明 TTS 不可用
+    let ttsStarted = false;
+    utterance.onstart = () => { ttsStarted = true; };
 
     window.speechSynthesis.speak(utterance);
+
+    setTimeout(() => {
+      if (!ttsStarted) {
+        // TTS 没有启动，切换到 Google TTS 兜底
+        window.speechSynthesis.cancel();
+        speakWithGoogleTTS(text);
+      }
+    }, 1000);
+
+    return;
   }
+
+  // 方案二：浏览器不支持 TTS，直接用 Google TTS
+  speakWithGoogleTTS(text);
+}
+
+// Google TTS 兜底方案
+function speakWithGoogleTTS(text) {
+  const audio = new Audio();
+  audio.src = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ko&client=tw-ob`;
+  audio.play().catch(() => {
+    // 如果自动播放被阻止，显示提示
+    showToast('点击喇叭图标即可朗读');
+  });
+}
+
+// 轻量 Toast 提示（放在 speakWord 附近）
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #6B5B45;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+  `;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => (toast.style.opacity = '1'));
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
 }
 
 // ========== 弹窗 ==========
@@ -1420,6 +1488,7 @@ window.dismissCompletionModal = dismissCompletionModal;
 window.exportProgress = exportProgress;
 window.importProgress = importProgress;
 window.resetAllProgress = resetAllProgress;
+window.showToast = showToast;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
