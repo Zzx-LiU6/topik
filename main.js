@@ -413,8 +413,8 @@ async function renderHomeView() {
     <div>
       <!-- 头部 -->
       <header class="text-center mb-8">
-        <h1 class="text-2xl md:text-3xl font-medium text-coffee-600 mb-2">TOPIK 韩语背单词</h1>
-        <p class="text-sm text-coffee-400">科学记忆 · 高效备考 · ${totalSetCount}套词库</p>
+        <h1 class="text-2xl md:text-3xl font-medium text-coffee-600 mb-2">🍽️ 단어 먹방</h1>
+        <p class="text-sm text-coffee-400">单词暴食 · 一口气吃掉 TOPIK 5426 词</p>
         <button onclick="toggleDarkMode()" class="mt-2 text-xs px-3 py-1 rounded-full bg-cream-200 hover:bg-cream-300 text-coffee-500 transition">
           ${state.darkMode ? '☀️ 日间模式' : '🌙 夜间模式'}
         </button>
