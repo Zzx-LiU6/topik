@@ -17,15 +17,23 @@ const STORAGE_KEYS = {
 // ========== 状态管理 ==========
 let state = {
   currentView: 'home',
-  currentSet: 1,                      // 当前套装数值（用于显示）
-  currentSetKey: '1',                 // 当前套装键字符串（用于匹配）
+  currentSet: 1,
+  currentSetKey: '1',
   currentIndex: 0,
   currentQueue: [],
   mode: 'new',
   selectedFilter: 'all',
-  searchKeyword: '',                   //【修改】新增搜索关键词状态
+  searchKeyword: '',
   targetWord: null,
-  levelFilter: 'all'          // ← 新增                   // 新增：存放详情页单词
+  levelFilter: 'all',
+  quizQuestions: [],
+  quizIndex: 0,
+  quizScore: 0,
+  wrongWords: [],
+  wrongViewMode: 'list',
+  calendarYear: new Date().getFullYear(),
+  calendarMonth: new Date().getMonth() + 1,
+  selectedDate: null
 };
 
 // 单词进度数据
@@ -332,6 +340,10 @@ async function renderCurrentView() {
     case 'overview': await renderOverviewView(); break;
     case 'bookmarks': await renderBookmarksView(); break;
     case 'wordDetail': await renderWordDetailView(state.targetWord); break;
+    case 'quiz': await renderQuizView(); break;
+    case 'wrong': await renderWrongView(); break;
+    case 'wrong': await renderWrongView(); break;
+    case 'calendar': await renderCalendarView(); break;
   }
 }
 
@@ -414,7 +426,7 @@ async function renderHomeView() {
       </div>
 
       <!-- 功能模块 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4 mb-6">
         <!-- 今日新词 -->
         <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
              onclick="startLearnNew()">
@@ -441,6 +453,46 @@ async function renderHomeView() {
           <h2 class="text-lg font-medium text-coffee-600 mb-1">待复习计划</h2>
           <p class="text-sm text-coffee-400">${reviewCount > 0 ? '基于艾宾浩斯遗忘曲线' : '暂无待复习单词'}</p>
         </div>
+
+        <!-- 测验·错题 -->
+        <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+          <div class="flex items-start justify-between mb-3">
+            <div class="text-3xl">🎯</div>
+          </div>
+          <h2 class="text-lg font-medium text-coffee-600 mb-3">测验·错题</h2>
+          <div class="flex gap-2">
+            <button onclick="startQuiz()" class="flex-1 px-3 py-2 bg-coffee-400 hover:bg-coffee-500 text-white text-sm rounded-xl transition-colors">
+              开始测验
+            </button>
+            <button onclick="goToWrongWords()" class="flex-1 px-3 py-2 bg-cream-200 hover:bg-cream-300 text-coffee-600 text-sm rounded-xl transition-colors">
+              错题集 ${state.wrongWords.length > 0 ? `(${state.wrongWords.length})` : ''}
+            </button>
+          </div>
+        </div>
+
+        <!-- 生词收藏本 -->
+        <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 ${bookmarkCount === 0 ? 'opacity-60' : ''} hover:-translate-y-1 hover:shadow-lg"
+             onclick="${bookmarkCount > 0 ? 'goToBookmarks()' : ''}">
+          <div class="flex items-start justify-between mb-3">
+            <div class="text-3xl">⭐</div>
+            ${bookmarkCount > 0 ? `<div class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-600">${bookmarkCount}个</div>` : ''}
+          </div>
+          <h2 class="text-lg font-medium text-coffee-600 mb-1">生词收藏本</h2>
+          <p class="text-sm text-coffee-400">${bookmarkCount > 0 ? '复习收藏的难点词汇' : '暂无收藏单词'}</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 学习日历 -->
+    <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg mb-6"
+         onclick="startCalendar()">
+      <div class="flex items-start justify-between mb-3">
+        <div class="text-3xl">📅</div>
+      </div>
+      <h2 class="text-lg font-medium text-coffee-600 mb-1">学习日历</h2>
+      <p class="text-sm text-coffee-400">记录每天的学习足迹</p>
+    </div>
 
         <!-- 词汇状态总览 -->
         <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -478,19 +530,6 @@ async function renderHomeView() {
             </svg>
           </div>
         </div>
-
-        <!-- 生词收藏本 -->
-        <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 ${bookmarkCount === 0 ? 'opacity-60' : ''} hover:-translate-y-1 hover:shadow-lg"
-             onclick="${bookmarkCount > 0 ? 'goToBookmarks()' : ''}">
-          <div class="flex items-start justify-between mb-3">
-            <div class="text-3xl">⭐</div>
-            ${bookmarkCount > 0 ? `<div class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-600">${bookmarkCount}个</div>` : ''}
-          </div>
-          <h2 class="text-lg font-medium text-coffee-600 mb-1">生词收藏本</h2>
-          <p class="text-sm text-coffee-400">${bookmarkCount > 0 ? '复习收藏的难点词汇' : '暂无收藏单词'}</p>
-        </div>
-      </div>
-    </div>
   `;
   }
 
@@ -1023,6 +1062,423 @@ async function renderWordDetailView(targetWord) {
   `;
 }
 
+// ========== 测验模式 ==========
+function startQuiz() {
+  const words = allVocabularySets[state.currentSetKey] || [];
+  if (words.length === 0) {
+    showToast('当前词库没有单词，无法开始测验。', 2000);
+    return;
+  }
+
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  const selected = shuffled.slice(0, Math.min(10, shuffled.length));
+
+  const allMeanings = words.map(w => w.meaning).filter(m => m);
+  state.quizQuestions = selected.map(word => {
+    const correctAnswer = word.meaning;
+    const distractors = allMeanings
+      .filter(m => m !== correctAnswer)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    while (distractors.length < 3) distractors.push('——');
+    const options = [correctAnswer, ...distractors].sort(() => Math.random() - 0.5);
+    return {
+      word: word,
+      options: options,
+      correctIndex: options.indexOf(correctAnswer),
+      userChoice: null,
+      isCorrect: null
+    };
+  });
+
+  state.quizIndex = 0;
+  state.quizScore = 0;
+  state.currentView = 'quiz';
+  renderCurrentView();
+}
+
+async function renderQuizView() {
+  if (!state.quizQuestions || state.quizQuestions.length === 0) {
+    goHome();
+    return;
+  }
+
+  if (state.quizIndex >= state.quizQuestions.length) {
+    renderQuizResult();
+    return;
+  }
+
+  const q = state.quizQuestions[state.quizIndex];
+  const currentWord = q.word;
+
+  elements.app.innerHTML = `
+    <div>
+      <header class="mb-6">
+        <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          返回首页
+        </button>
+      </header>
+
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h1 class="text-lg font-medium text-coffee-600">🎯 测验模式</h1>
+          <span class="text-sm text-coffee-400">第 ${state.quizIndex + 1}/${state.quizQuestions.length} 题</span>
+        </div>
+        <div class="bg-cream-300 rounded-full h-3 overflow-hidden shadow-inner">
+          <div class="h-full bg-gradient-to-r from-coffee-400 to-coffee-500 rounded-full transition-all duration-500" style="width: ${(state.quizIndex / state.quizQuestions.length) * 100}%"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
+        <p class="text-center text-coffee-400 text-sm mb-4">다음 단어의 올바른 뜻은 무엇인가요?</p>
+        <p class="text-center text-4xl font-medium text-coffee-600 mb-8">${currentWord.korean}</p>
+        <div class="space-y-3">
+          ${q.options.map((opt, i) => {
+            let btnClass = 'bg-cream-200 border-cream-300 text-coffee-600 hover:bg-cream-300';
+            if (q.userChoice !== null) {
+              if (i === q.correctIndex) {
+                btnClass = 'bg-green-100 border-green-400 text-green-700';
+              } else if (i === q.userChoice) {
+                btnClass = 'bg-red-100 border-red-400 text-red-700';
+              } else {
+                btnClass = 'bg-cream-100 border-cream-200 text-coffee-400 opacity-60';
+              }
+            }
+            return `
+              <button onclick="handleQuizAnswer(${state.quizIndex}, ${i})"
+                      class="w-full px-4 py-3 rounded-xl border text-left text-base font-medium transition-all duration-200 ${btnClass}"
+                      ${q.userChoice !== null ? 'disabled' : ''}>
+                ${String.fromCharCode(65 + i)}. ${opt}
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function handleQuizAnswer(questionIndex, choiceIndex) {
+  const q = state.quizQuestions[questionIndex];
+  if (q.userChoice !== null) return;
+
+  q.userChoice = choiceIndex;
+  q.isCorrect = (choiceIndex === q.correctIndex);
+  if (q.isCorrect) state.quizScore++;
+
+  renderCurrentView();
+
+  setTimeout(() => {
+    state.quizIndex++;
+    if (state.quizIndex < state.quizQuestions.length) {
+      renderCurrentView();
+    } else {
+      renderQuizResult();
+    }
+  }, 800);
+}
+
+function renderQuizResult() {
+  const total = state.quizQuestions.length;
+  const score = state.quizScore;
+  const wrongWords = state.quizQuestions.filter(q => !q.isCorrect).map(q => q.word);
+
+  // 把错词加入错题集
+  wrongWords.forEach(w => {
+    if (!state.wrongWords.includes(w.korean)) {
+      state.wrongWords.push(w.korean);
+    }
+  });
+
+  elements.app.innerHTML = `
+    <div>
+      <header class="mb-6">
+        <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          返回首页
+        </button>
+      </header>
+
+      <div class="text-center mb-8">
+        <div class="text-5xl mb-4">${score === total ? '🏆' : score >= total/2 ? '👍' : '📚'}</div>
+        <h1 class="text-2xl font-medium text-coffee-600 mb-2">测验完成！</h1>
+        <p class="text-lg text-coffee-400">共 ${total} 题，答对 <span class="text-coffee-600 font-bold">${score}</span> 题</p>
+        <p class="text-sm text-coffee-300 mt-1">正确率 ${Math.round((score/total)*100)}%</p>
+      </div>
+
+      ${wrongWords.length > 0 ? `
+      <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
+        <h3 class="text-base font-medium text-coffee-600 mb-3">📝 需要复习的单词</h3>
+        <div class="space-y-2">
+          ${wrongWords.map(w => `
+            <div class="flex items-center justify-between p-3 bg-cream-50 rounded-xl">
+              <div><span class="font-medium text-coffee-600">${w.korean}</span><span class="text-sm text-coffee-400 ml-2">[${w.roman}]</span></div>
+              <span class="text-sm text-coffee-500">${w.meaning}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : `
+      <div class="text-center py-8 text-coffee-400"><p class="text-lg">🎉 全部答对，太棒了！</p></div>
+      `}
+
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button onclick="startQuiz()" class="px-6 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all">再来一次</button>
+        ${state.wrongWords.length > 0 ? `<button onclick="goToWrongWords()" class="px-6 py-3 bg-red-400 hover:bg-red-500 text-white rounded-2xl font-medium transition-all">📝 错题集 (${state.wrongWords.length})</button>` : ''}
+        <button onclick="goHome()" class="px-6 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all">返回首页</button>
+      </div>
+    </div>
+  `;
+}
+
+// ========== 错题集 ==========
+async function goToWrongWords() {
+  state.currentView = 'wrong';
+  state.wrongViewMode = 'list';
+  state.currentIndex = 0;
+  await renderCurrentView();
+}
+
+async function renderWrongView() {
+  if (state.wrongWords.length === 0) {
+    elements.app.innerHTML = `
+      <div>
+        <header class="mb-6">
+          <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            返回首页
+          </button>
+        </header>
+        <div class="text-center py-12">
+          <div class="text-5xl mb-4">🎉</div>
+          <h2 class="text-lg font-medium text-coffee-600 mb-2">错题集为空</h2>
+          <p class="text-sm text-coffee-400 mb-6">测验错题会在复习掌握后自动移除</p>
+          <button onclick="goHome()" class="px-6 py-2 bg-coffee-400 text-white rounded-xl transition-colors">返回首页</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const wrongWordsList = [];
+  for (const kw of state.wrongWords) {
+    for (const setKey of sortedSetKeys) {
+      const word = allVocabularySets[setKey]?.find(w => w.korean === kw);
+      if (word) {
+        if (wordProgress[word.id]?.status !== 'permanent') {
+          wrongWordsList.push(word);
+        }
+        break;
+      }
+    }
+  }
+
+  if (wrongWordsList.length === 0) {
+    state.wrongWords = [];
+    await renderWrongView();
+    return;
+  }
+
+  if (state.wrongViewMode === 'list') {
+    elements.app.innerHTML = `
+      <div>
+        <header class="mb-6">
+          <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            返回首页
+          </button>
+        </header>
+        <h1 class="text-xl font-medium text-coffee-600 mb-4">📝 错题集 (${wrongWordsList.length}题)</h1>
+        <div class="flex gap-2 mb-4">
+          <button onclick="startWrongReview()" class="px-4 py-2 bg-coffee-400 text-white rounded-xl text-sm">🔁 开始复习</button>
+          <button onclick="state.wrongWords=[];goHome();" class="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-sm">🗑 清空</button>
+        </div>
+        <div class="space-y-2">
+          ${wrongWordsList.map(w => {
+            const status = getWordStatus(w.id);
+            const statusBadge = status === 'review' ? 'bg-amber-100 text-amber-600' : 'bg-cream-200 text-coffee-400';
+            const statusText = status === 'review' ? '待复习' : '未学习';
+            return `
+              <div class="p-3 bg-white rounded-xl border border-cream-300 flex items-center justify-between">
+                <div><span class="font-medium text-coffee-600">${w.korean}</span><span class="text-sm text-coffee-400 ml-2">${w.meaning}</span></div>
+                <span class="text-xs px-2 py-0.5 rounded-full ${statusBadge}">${statusText}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+}
+
+function startWrongReview() {
+  const wrongWordsList = [];
+  for (const kw of state.wrongWords) {
+    for (const setKey of sortedSetKeys) {
+      const word = allVocabularySets[setKey]?.find(w => w.korean === kw);
+      if (word && wordProgress[word.id]?.status !== 'permanent') {
+        wrongWordsList.push(word);
+        break;
+      }
+    }
+  }
+  if (wrongWordsList.length === 0) {
+    state.wrongWords = [];
+    goHome();
+    return;
+  }
+  state.currentView = 'wrong';
+  state.wrongViewMode = 'learn';
+  state.currentQueue = wrongWordsList;
+  state.currentIndex = 0;
+  state.mode = 'new';
+  renderLearnView();
+}
+
+// ========== 学习日历 ==========
+function startCalendar() {
+  state.currentView = 'calendar';
+  state.selectedDate = null;
+  renderCurrentView();
+}
+
+function changeCalendarMonth(delta) {
+  state.calendarMonth += delta;
+  if (state.calendarMonth > 12) {
+    state.calendarMonth = 1;
+    state.calendarYear++;
+  } else if (state.calendarMonth < 1) {
+    state.calendarMonth = 12;
+    state.calendarYear--;
+  }
+  state.selectedDate = null;
+  renderCurrentView();
+}
+
+function selectCalendarDate(dateStr) {
+  state.selectedDate = dateStr;
+  renderCurrentView();
+}
+
+function getWordsByDate(dateStr, type) {
+  const words = [];
+  for (const [wordId, progress] of Object.entries(wordProgress)) {
+    let match = false;
+    if (type === 'new' && progress.firstLearnedDate === dateStr) match = true;
+    if (type === 'review' && progress.lastReviewDate === dateStr) match = true;
+    if (type === 'permanent' && progress.permanentDate === dateStr) match = true;
+    if (match) {
+      for (const setKey of sortedSetKeys) {
+        const w = allVocabularySets[setKey]?.find(w => w.id === wordId);
+        if (w) {
+          words.push(w);
+          break;
+        }
+      }
+    }
+  }
+  return words;
+}
+
+function getCalendarData(year, month) {
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = getToday();
+  const days = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const newCount = Object.values(wordProgress).filter(p => p.firstLearnedDate === dateStr).length;
+    const reviewCount = Object.values(wordProgress).filter(p => p.lastReviewDate === dateStr).length;
+    const permanentCount = Object.values(wordProgress).filter(p => p.permanentDate === dateStr).length;
+    days.push({ day: d, dateStr, newCount, reviewCount, permanentCount, isToday: dateStr === today });
+  }
+  return { firstDay, days };
+}
+
+async function renderCalendarView() {
+  const year = state.calendarYear;
+  const month = state.calendarMonth;
+  const { firstDay, days } = getCalendarData(year, month);
+
+  let detailHTML = '';
+  if (state.selectedDate) {
+    const newWords = getWordsByDate(state.selectedDate, 'new');
+    const reviewWords = getWordsByDate(state.selectedDate, 'review');
+    const permanentWords = getWordsByDate(state.selectedDate, 'permanent');
+    detailHTML = `
+      <div class="bg-white rounded-2xl p-4 mt-4 space-y-3">
+        ${newWords.length > 0 ? `
+        <div>
+          <h4 class="text-sm font-medium text-coffee-600 mb-2">📖 今日新学 (${newWords.length})</h4>
+          <div class="flex flex-wrap gap-2">
+            ${newWords.map(w => `<span class="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">${w.korean}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${reviewWords.length > 0 ? `
+        <div>
+          <h4 class="text-sm font-medium text-coffee-600 mb-2">🔁 今日复习 (${reviewWords.length})</h4>
+          <div class="flex flex-wrap gap-2">
+            ${reviewWords.map(w => `<span class="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">${w.korean}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${permanentWords.length > 0 ? `
+        <div>
+          <h4 class="text-sm font-medium text-coffee-600 mb-2">🏆 彻底掌握 (${permanentWords.length})</h4>
+          <div class="flex flex-wrap gap-2">
+            ${permanentWords.map(w => `<span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">${w.korean}</span>`).join('')}
+          </div>
+        </div>` : ''}
+        ${newWords.length === 0 && reviewWords.length === 0 && permanentWords.length === 0 ? '<p class="text-sm text-coffee-400 text-center">当天没有学习记录</p>' : ''}
+      </div>
+    `;
+  }
+
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+  elements.app.innerHTML = `
+    <div>
+      <header class="mb-6">
+        <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+          <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          返回首页
+        </button>
+      </header>
+      <h1 class="text-xl font-medium text-coffee-600 mb-4">📅 学习日历</h1>
+
+      <div class="flex items-center justify-between mb-4">
+        <button onclick="changeCalendarMonth(-1)" class="p-2 rounded-full hover:bg-cream-200 transition-colors">
+          <svg class="w-5 h-5 text-coffee-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="text-lg font-medium text-coffee-600">${year}年 ${month}月</span>
+        <button onclick="changeCalendarMonth(1)" class="p-2 rounded-full hover:bg-cream-200 transition-colors">
+          <svg class="w-5 h-5 text-coffee-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-3xl p-4 shadow-md border border-cream-300">
+        <div class="grid grid-cols-7 gap-1 text-center text-sm text-coffee-400 mb-2">
+          ${weekDays.map(d => `<div>${d}</div>`).join('')}
+        </div>
+        <div class="grid grid-cols-7 gap-1">
+          ${Array.from({ length: firstDay }).map(() => '<div></div>').join('')}
+          ${days.map(d => `
+            <div class="p-1 cursor-pointer rounded-lg text-center ${d.isToday ? 'bg-cream-200' : 'hover:bg-cream-100'} ${state.selectedDate === d.dateStr ? 'ring-2 ring-coffee-400' : ''}" onclick="selectCalendarDate('${d.dateStr}')">
+              <div class="text-sm font-medium text-coffee-600">${d.day}</div>
+              <div class="flex justify-center gap-1 mt-0.5">
+                ${d.newCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>' : ''}
+                ${d.reviewCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' : ''}
+                ${d.permanentCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>' : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      ${detailHTML}
+    </div>
+  `;
+}
+
 // ========== 操作处理 ==========
 function initializeLearnQueue() {
   const words = allVocabularySets[state.currentSetKey] || [];
@@ -1060,11 +1516,13 @@ async function handleAction(action) {
       wordProgress[currentWord.id] = {
         status: 'mastered',
         firstLearnedDate: today,
+        lastReviewDate: today,
         nextReviewDate: addDays(today, 1),
         reviewCount: 0
       };
     } else {
       wordProgress[currentWord.id].reviewCount++;
+      wordProgress[currentWord.id].lastReviewDate = today;
       wordProgress[currentWord.id].nextReviewDate = addDays(
         today,
         [1, 2, 4, 7, 15, 30][Math.min(wordProgress[currentWord.id].reviewCount, 5)]
@@ -1079,13 +1537,20 @@ async function handleAction(action) {
       return;
     }
 
+    // 如果是错题复习模式，掌握后从错题集移除
+    if (state.currentView === 'wrong' && state.wrongViewMode === 'learn') {
+      state.wrongWords = state.wrongWords.filter(kw => kw !== currentWord.korean);
+    }
+
     if (state.currentIndex >= queue.length) {
       state.currentIndex = 0;
     }
   } else if (action === 'permanent') {
     wordProgress[currentWord.id] = {
       status: 'permanent',
-      firstLearnedDate: today,
+      firstLearnedDate: wordProgress[currentWord.id]?.firstLearnedDate || today,
+      lastReviewDate: wordProgress[currentWord.id]?.lastReviewDate || today,
+      permanentDate: today,
       nextReviewDate: null,
       reviewCount: 0
     };
@@ -1098,10 +1563,19 @@ async function handleAction(action) {
       return;
     }
 
+    // 如果是错题复习模式，掌握后从错题集移除
+    if (state.currentView === 'wrong' && state.wrongViewMode === 'learn') {
+      state.wrongWords = state.wrongWords.filter(kw => kw !== currentWord.korean);
+    }
+
     if (state.currentIndex >= queue.length) {
       state.currentIndex = 0;
     }
   } else if (action === 'review') {
+    if (!wordProgress[currentWord.id]) {
+      wordProgress[currentWord.id] = {};
+    }
+    wordProgress[currentWord.id].lastReviewDate = today;
     queue.splice(state.currentIndex, 1);
     queue.push(currentWord);
   }
@@ -1550,6 +2024,13 @@ window.importProgress = importProgress;
 window.resetAllProgress = resetAllProgress;
 window.showToast = showToast;
 window.setLevelFilter = setLevelFilter;
+window.startQuiz = startQuiz;
+window.handleQuizAnswer = handleQuizAnswer;
+window.goToWrongWords = goToWrongWords;
+window.startWrongReview = startWrongReview;
+window.startCalendar = startCalendar;
+window.changeCalendarMonth = changeCalendarMonth;
+window.selectCalendarDate = selectCalendarDate;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
