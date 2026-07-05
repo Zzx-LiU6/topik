@@ -1212,7 +1212,7 @@ async function speakWord(text) {
   if (success) return;
 
   // 3. 都失败了，给出明确提示
-  showToast('当前浏览器不支持朗读，建议使用 Chrome 浏览器，或在手机设置中下载韩语语音包。', 3000);
+  showToast('当前浏览器不支持朗读', 3000);
 }
 
 // 检测是否有韩语语音
