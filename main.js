@@ -461,10 +461,10 @@ async function renderHomeView() {
           </div>
           <h2 class="text-lg font-medium text-coffee-600 mb-3">测验·错题</h2>
           <div class="flex gap-2">
-            <button onclick="startQuiz()" class="flex-1 px-3 py-2 bg-coffee-400 hover:bg-coffee-500 text-white text-sm rounded-xl transition-colors">
+            <button onclick="showQuizModePicker()" class="flex-1 px-4 py-2.5 bg-coffee-400 hover:bg-coffee-500 text-white text-sm font-medium rounded-2xl transition-all duration-200 hover:shadow-md active:scale-95">
               开始测验
             </button>
-            <button onclick="goToWrongWords()" class="flex-1 px-3 py-2 bg-cream-200 hover:bg-cream-300 text-coffee-600 text-sm rounded-xl transition-colors">
+            <button onclick="goToWrongWords()" class="flex-1 px-4 py-2.5 bg-cream-200 hover:bg-cream-300 text-coffee-600 text-sm font-medium rounded-2xl transition-all duration-200 border border-cream-300 active:scale-95 ${state.wrongWords.length === 0 ? 'opacity-50' : ''}">
               错题集 ${state.wrongWords.length > 0 ? `(${state.wrongWords.length})` : ''}
             </button>
           </div>
@@ -1063,20 +1063,97 @@ async function renderWordDetailView(targetWord) {
 }
 
 // ========== 测验模式 ==========
-function startQuiz() {
-  const words = allVocabularySets[state.currentSetKey] || [];
+function startQuiz(mode = 'today') {
+  let words = [];
+
+  const today = getToday();
+
+  // 1. 当前套装未掌握的词汇
+  const currentSetWords = (allVocabularySets[state.currentSetKey] || []).filter(w => {
+    const p = wordProgress[w.id];
+    return !p || p.status !== 'permanent';
+  });
+
+  // 2. 待复习词汇
+  const reviewWords = [];
+  for (const [wordId, progress] of Object.entries(wordProgress)) {
+    if (progress.status === 'mastered' && progress.nextReviewDate && progress.nextReviewDate <= today) {
+      for (const setKey of sortedSetKeys) {
+        const w = allVocabularySets[setKey]?.find(w => w.id === wordId);
+        if (w && !reviewWords.some(rw => rw.id === w.id)) {
+          reviewWords.push(w);
+          break;
+        }
+      }
+    }
+  }
+
+  // 3. 所有初级未掌握的词汇
+  const primaryWords = [];
+  for (const setKey of sortedSetKeys) {
+    const setNumber = parseInt(setKey, 10);
+    if (setNumber <= 90) {
+      const ws = (allVocabularySets[setKey] || []).filter(w => {
+        const p = wordProgress[w.id];
+        return !p || p.status !== 'permanent';
+      });
+      primaryWords.push(...ws);
+    }
+  }
+
+  // 4. 所有中级未掌握的词汇
+  const intermediateWords = [];
+  for (const setKey of sortedSetKeys) {
+    const setNumber = parseInt(setKey, 10);
+    if (setNumber > 90) {
+      const ws = (allVocabularySets[setKey] || []).filter(w => {
+        const p = wordProgress[w.id];
+        return !p || p.status !== 'permanent';
+      });
+      intermediateWords.push(...ws);
+    }
+  }
+
+  // 5. 全部未掌握的词汇
+  const allUnmastered = [...primaryWords, ...intermediateWords];
+
+  // 根据模式选词
+  switch (mode) {
+    case 'today':
+      // 当前套装 + 待复习，去重合并
+      const todayMap = new Map();
+      currentSetWords.forEach(w => todayMap.set(w.id, w));
+      reviewWords.forEach(w => todayMap.set(w.id, w));
+      words = Array.from(todayMap.values());
+      break;
+    case 'primary':
+      words = primaryWords;
+      break;
+    case 'intermediate':
+      words = intermediateWords;
+      break;
+    case 'all':
+      words = allUnmastered;
+      break;
+    default:
+      words = currentSetWords;
+  }
+
   if (words.length === 0) {
-    showToast('当前词库没有单词，无法开始测验。', 2000);
+    showToast('没有可测验的单词，请先学习一些单词。', 2000);
     return;
   }
 
+  // 随机抽取 10 题
   const shuffled = [...words].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, Math.min(10, shuffled.length));
 
+  // 收集所有可选释义作为干扰项来源
   const allMeanings = words.map(w => w.meaning).filter(m => m);
+
   state.quizQuestions = selected.map(word => {
     const correctAnswer = word.meaning;
-    const distractors = allMeanings
+    let distractors = allMeanings
       .filter(m => m !== correctAnswer)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3);
@@ -1095,6 +1172,55 @@ function startQuiz() {
   state.quizScore = 0;
   state.currentView = 'quiz';
   renderCurrentView();
+}
+
+function showQuizModePicker() {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-coffee-600/30 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 w-[90%] max-w-sm border border-cream-300 fade-in">
+      <h3 class="text-lg font-medium text-coffee-600 text-center mb-4">选择测验模式</h3>
+      <div class="space-y-3">
+        <button class="quiz-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="today">
+          <div class="font-medium text-coffee-600">📖 今日学习 <span class="text-xs text-green-500 ml-1">推荐</span></div>
+          <div class="text-xs text-coffee-400 mt-0.5">当前套装 + 待复习词汇</div>
+        </button>
+        <button class="quiz-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="primary">
+          <div class="font-medium text-coffee-600">📗 初级专练</div>
+          <div class="text-xs text-coffee-400 mt-0.5">仅初级词汇 (set 1-90)</div>
+        </button>
+        <button class="quiz-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="intermediate">
+          <div class="font-medium text-coffee-600">📘 中级专练</div>
+          <div class="text-xs text-coffee-400 mt-0.5">仅中级词汇 (set 91-272)</div>
+        </button>
+        <button class="quiz-mode-btn w-full px-4 py-3 bg-white border border-cream-300 rounded-2xl text-left hover:bg-cream-50 transition-colors" data-mode="all">
+          <div class="font-medium text-coffee-600">🌐 全部混合</div>
+          <div class="text-xs text-coffee-400 mt-0.5">所有未掌握词汇大乱斗</div>
+        </button>
+      </div>
+      <button class="w-full mt-4 px-4 py-2 bg-cream-200 hover:bg-cream-300 text-coffee-500 rounded-xl text-sm transition-colors" id="cancel-quiz-picker">
+        取消
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // 点击遮罩关闭
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  // 取消按钮
+  overlay.querySelector('#cancel-quiz-picker').addEventListener('click', () => overlay.remove());
+
+  // 四个模式按钮
+  overlay.querySelectorAll('.quiz-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      overlay.remove();
+      startQuiz(mode);
+    });
+  });
 }
 
 async function renderQuizView() {
@@ -2031,6 +2157,7 @@ window.startWrongReview = startWrongReview;
 window.startCalendar = startCalendar;
 window.changeCalendarMonth = changeCalendarMonth;
 window.selectCalendarDate = selectCalendarDate;
+window.showQuizModePicker = showQuizModePicker;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
