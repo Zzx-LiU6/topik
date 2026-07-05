@@ -24,7 +24,8 @@ let state = {
   mode: 'new',
   selectedFilter: 'all',
   searchKeyword: '',                   //【修改】新增搜索关键词状态
-  targetWord: null                    // 新增：存放详情页单词
+  targetWord: null,
+  levelFilter: 'all'          // ← 新增                   // 新增：存放详情页单词
 };
 
 // 单词进度数据
@@ -71,6 +72,8 @@ async function loadVocabularyData() {
       for (let i = 0; i < words.length; i++) {
         const w = words[i];
         if (w && typeof w.id === 'string' && typeof w.korean === 'string' && w.korean.trim() !== '') {
+          
+          const setNumber = parseInt(key, 10);
           validWords.push({
             id: w.id,
             korean: w.korean,
@@ -78,7 +81,8 @@ async function loadVocabularyData() {
             meaning: w.meaning || '（待补充）',
             pos: w.pos || '词性未知',
             exampleKr: w.exampleKr || '',
-            exampleCn: w.exampleCn || ''
+            exampleCn: w.exampleCn || '',
+            level: setNumber <= 90 ? '初级' : '中级'   // ← 新增这一行
           });
         }
       }
@@ -674,28 +678,44 @@ async function renderOverviewView() {
     allWords = allWords.concat(allVocabularySets[setKey] || []);
   }
 
-  const statusCount = { new: 0, learning: 0, permanent: 0, review: 0, mastered: 0 };
-  allWords.forEach(w => {
-    const s = getWordStatus(w.id);
-    if (s === 'permanent') {
-      statusCount.permanent++;
-    } else if (s === 'review') {
-      statusCount.review++;
-      statusCount.learning++;
-    } else if (s === 'mastered') {
-      statusCount.mastered++;
-      statusCount.learning++;
-    } else if (s === 'new') {
-      statusCount.new++;
-    } else {
-    statusCount.learning++; // 兜底
+    // 先按等级过滤出当前范围内的单词
+    let levelFilteredWords = allWords;
+    if (state.levelFilter === 'primary') {
+      levelFilteredWords = allWords.filter(w => w.level === '初级');
+    } else if (state.levelFilter === 'intermediate') {
+      levelFilteredWords = allWords.filter(w => w.level === '中级');
     }
-  });
+  
+    const statusCount = { new: 0, learning: 0, permanent: 0, review: 0, mastered: 0 };
+    levelFilteredWords.forEach(w => {
+      const s = getWordStatus(w.id);
+      if (s === 'permanent') {
+        statusCount.permanent++;
+      } else if (s === 'review') {
+        statusCount.review++;
+        statusCount.learning++;
+      } else if (s === 'mastered') {
+        statusCount.mastered++;
+        statusCount.learning++;
+      } else if (s === 'new') {
+        statusCount.new++;
+      } else {
+        statusCount.learning++;
+      }
+    });
 
   const total = allWords.length;
 
-  // 根据筛选器过滤
   let filteredWords = allWords;
+
+  // 先按等级过滤
+  if (state.levelFilter === 'primary') {
+    filteredWords = filteredWords.filter(w => w.level === '初级');
+  } else if (state.levelFilter === 'intermediate') {
+    filteredWords = filteredWords.filter(w => w.level === '中级');
+  }
+
+  // 再按状态过滤（原有的代码保持不变）
   if (state.selectedFilter === 'new') {
     filteredWords = allWords.filter(w => getWordStatus(w.id) === 'new');
   } else if (state.selectedFilter === 'review') {
@@ -755,6 +775,23 @@ async function renderOverviewView() {
         ${rawKeyword ? `<p class="text-xs text-coffee-400 mt-1">搜索结果：${filteredWords.length} 个单词</p>` : ''}
       </div>
 
+      <!-- 等级筛选漏斗 -->
+      <div class="flex items-center gap-2 mb-4">
+        <span class="text-sm text-coffee-400 mr-1">🔽</span>
+        <button onclick="setLevelFilter('all')"
+                class="px-3 py-1.5 rounded-full text-sm transition-all ${state.levelFilter === 'all' ? 'bg-coffee-400 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
+          全部词库
+        </button>
+        <button onclick="setLevelFilter('primary')"
+                class="px-3 py-1.5 rounded-full text-sm transition-all ${state.levelFilter === 'primary' ? 'bg-blue-400 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
+          📗 初级
+        </button>
+        <button onclick="setLevelFilter('intermediate')"
+                class="px-3 py-1.5 rounded-full text-sm transition-all ${state.levelFilter === 'intermediate' ? 'bg-purple-400 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
+          📘 中级
+        </button>
+      </div>
+
             <!-- 饼图 + 统计 -->
       <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
         <div class="flex items-center justify-center mb-4">
@@ -805,7 +842,7 @@ async function renderOverviewView() {
       <!-- 筛选标签 -->
       <div class="flex flex-wrap gap-2 mb-4">
         <button onclick="setFilter('all')" class="px-3 py-1.5 rounded-full text-sm transition-all ${state.selectedFilter === 'all' ? 'bg-coffee-400 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
-          全部 (${total})
+          全部 (${levelFilteredWords.length})
         </button>
         <button onclick="setFilter('new')" class="px-3 py-1.5 rounded-full text-sm transition-all ${state.selectedFilter === 'new' ? 'bg-coffee-400 text-white' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
           未学习 (${statusCount.new})
@@ -1099,6 +1136,10 @@ function toggleBookmark(wordId) {
 
 function setFilter(filter) {
   state.selectedFilter = filter;
+  renderCurrentView();
+}
+function setLevelFilter(level) {
+  state.levelFilter = level;
   renderCurrentView();
 }
 let searchTimer = null;
@@ -1508,6 +1549,7 @@ window.exportProgress = exportProgress;
 window.importProgress = importProgress;
 window.resetAllProgress = resetAllProgress;
 window.showToast = showToast;
+window.setLevelFilter = setLevelFilter;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
