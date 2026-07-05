@@ -441,22 +441,22 @@ async function renderHomeView() {
           <div class="mt-3 flex justify-center">
             <svg viewBox="0 0 36 36" class="w-16 h-16">
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
+              <!-- 未学习（灰色） -->
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
                       stroke-dasharray="${totalWords > 0 ? (statusCount.new/totalWords)*100 : 0} 100"
                       stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F59E0B" stroke-width="3"
-                      stroke-dasharray="${totalWords > 0 ? (statusCount.review/totalWords)*100 : 0} 100"
+              <!-- 学习中（棕色） -->
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
+                      stroke-dasharray="${totalWords > 0 ? (statusCount.learning/totalWords)*100 : 0} 100"
                       stroke-dashoffset="-${totalWords > 0 ? (statusCount.new/totalWords)*100 : 0}"
                       stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
-                      stroke-dasharray="${totalWords > 0 ? (statusCount.mastered/totalWords)*100 : 0} 100"
-                      stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.review)/totalWords)*100 : 0}"
-                      stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+              <!-- 已掌握（绿色） -->
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
                       stroke-dasharray="${totalWords > 0 ? (statusCount.permanent/totalWords)*100 : 0} 100"
-                      stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.review + statusCount.mastered)/totalWords)*100 : 0}"
+                      stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.learning)/totalWords)*100 : 0}"
                       stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <text x="18" y="20" text-anchor="middle" class="text-xs fill-coffee-500" font-size="8">${totalWords > 0 ? Math.round((totalMastered/totalWords)*100) : 0}%</text>
+              <!-- 中间固定图标 -->
+              <text x="18" y="19" text-anchor="middle" font-size="6">📊</text>
             </svg>
           </div>
         </div>
