@@ -1333,8 +1333,73 @@ function showSpellModePicker() {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.mode;
       overlay.remove();
-      startSpell(mode);
+      onSpellModeSelected(mode);
     });
+  });
+}
+
+function onSpellModeSelected(mode) {
+  const saved = localStorage.getItem('topik_spell_state');
+  if (saved) {
+    try {
+      const spellState = JSON.parse(saved);
+      if (spellState.words && spellState.words.length > 0 && spellState.index < spellState.words.length) {
+        showSpellResumeDialog(mode, spellState);
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem('topik_spell_state');
+    }
+  }
+  startSpell(mode);
+}
+
+function showSpellResumeDialog(newMode, savedState) {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-coffee-600/30 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 w-[90%] max-w-sm border border-cream-300 fade-in text-center">
+      <div class="text-4xl mb-4">📋</div>
+      <h3 class="text-lg font-medium text-coffee-600 mb-2">检测到未完成的拼写</h3>
+      <p class="text-sm text-coffee-400 mb-6">
+        上次进度：第 ${savedState.index + 1}/${savedState.words.length} 题，
+        已拼对 ${savedState.score} 题
+      </p>
+      <div class="space-y-3">
+        <button class="w-full px-4 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all" id="resume-spell-btn">
+          继续上次拼写
+        </button>
+        <button class="w-full px-4 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all border border-cream-300" id="new-spell-btn">
+          开始新拼写
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#resume-spell-btn').addEventListener('click', () => {
+    overlay.remove();
+    state.spellWords = savedState.words;
+    state.spellIndex = savedState.index;
+    state.spellScore = savedState.score;
+    state.spellResults = savedState.results || [];
+    state.spellMode = savedState.mode || 'today';
+    state.currentView = 'spell';
+    renderCurrentView();
+  });
+
+  overlay.querySelector('#new-spell-btn').addEventListener('click', () => {
+    overlay.remove();
+    localStorage.removeItem('topik_spell_state');
+    startSpell(newMode);
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+      localStorage.removeItem('topik_spell_state');
+      startSpell(newMode);
+    }
   });
 }
 
@@ -1395,6 +1460,8 @@ function startSpell(mode) {
   state.spellResults = []; // { word, userAnswer, isCorrect }
   state.currentView = 'spell';
   renderCurrentView();
+  state.spellMode = mode;
+  localStorage.removeItem('topik_spell_state');
 }
 
 async function renderSpellView() {
@@ -1465,6 +1532,14 @@ function submitSpellAnswer() {
   if (isCorrect) state.spellScore++;
 
   state.spellIndex++;
+    // 保存拼写进度
+    localStorage.setItem('topik_spell_state', JSON.stringify({
+      words: state.spellWords,
+      index: state.spellIndex,
+      score: state.spellScore,
+      results: state.spellResults,
+      mode: state.spellMode
+    }));
   if (state.spellIndex < state.spellWords.length) {
     renderCurrentView();
   } else {
@@ -1473,6 +1548,7 @@ function submitSpellAnswer() {
 }
 
 function renderSpellResult() {
+  localStorage.removeItem('topik_spell_state');
   const total = state.spellWords.length;
   const score = state.spellScore;
   const wrongResults = state.spellResults.filter(r => !r.isCorrect);
@@ -1529,7 +1605,14 @@ function renderSpellResult() {
 }
 
 function saveSpellAndExit() {
-  // 拼写模式暂不保存进度（每次只抽10题，很快做完）
+  localStorage.setItem('topik_spell_state', JSON.stringify({
+    words: state.spellWords,
+    index: state.spellIndex,
+    score: state.spellScore,
+    results: state.spellResults,
+    mode: state.spellMode || 'today'
+  }));
+  showToast('测验进度已保存', 1500);
   goHome();
 }
 
@@ -1693,6 +1776,7 @@ function saveQuizAndExit() {
     score: state.quizScore,
     mode: state.quizMode
   }));
+  showToast('测验进度已保存', 1500);
   goHome();
 }
 
@@ -2594,6 +2678,8 @@ window.showSpellModePicker = showSpellModePicker;
 window.startSpell = startSpell;
 window.submitSpellAnswer = submitSpellAnswer;
 window.saveSpellAndExit = saveSpellAndExit;
+window.onSpellModeSelected = onSpellModeSelected;
+window.showSpellResumeDialog = showSpellResumeDialog;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
