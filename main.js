@@ -2049,10 +2049,20 @@ function showToast(msg, duration = 1000) {
 // ========== 弹窗 ==========
 function showCompletionModal() {
   const modal = document.getElementById('completion-modal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+  if (!modal) return;
+
+  // 根据当前模式调整弹窗按钮
+  const isReviewMode = state.mode === 'review' || state.currentView === 'review';
+  const loadNewSetBtn = modal.querySelector('#load-new-set-btn');
+  const resetBtn = modal.querySelector('#reset-current-set-btn');
+
+  if (loadNewSetBtn) {
+    // 复习模式下隐藏“背诵下一套单词”按钮
+    loadNewSetBtn.style.display = isReviewMode ? 'none' : '';
   }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
 }
 
 function closeCompletionModal() {
@@ -2078,6 +2088,13 @@ function resetCurrentSet() {
 }
 
 function loadNewSet() {
+  // 复习模式下不允许跳转
+  if (state.mode === 'review' || state.currentView === 'review') {
+    closeCompletionModal();
+    goHome();
+    return;
+  }
+
   if (sortedSetKeys.length === 0) {
     closeCompletionModal();
     goHome();
