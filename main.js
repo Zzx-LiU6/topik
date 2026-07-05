@@ -986,6 +986,7 @@ async function handleAction(action) {
         today,
         [1, 2, 4, 7, 15, 30][Math.min(wordProgress[currentWord.id].reviewCount, 5)]
       );
+      wordProgress[currentWord.id].lastStudiedDate = today;
     }
 
     queue.splice(state.currentIndex, 1);
