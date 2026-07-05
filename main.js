@@ -506,12 +506,15 @@ async function renderLearnView() {
     //【修改】收藏本模式：仅用currentIndex作为分子，total为队列长度
     completed = state.currentIndex;
     percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-  } else {
-    // 新词模式：用套装已完成数
-    completed = await getCompletedCountForSet(state.currentSetKey);
-    console.log('进度计算', { completed, total, setKey: state.currentSetKey, wordProgressKeys: Object.keys(wordProgress) });
-    percent = Math.round((completed / total) * 100);
-  }
+    } else {
+      // 新词模式：直接统计当前套装中已完成（mastered/permanent）的单词数
+       const currentSetWords = allVocabularySets[state.currentSetKey] || [];
+       completed = currentSetWords.filter(w => {
+         const s = wordProgress[w.id]?.status;
+         return s === 'mastered' || s === 'permanent';
+       }).length;
+      percent = Math.round((completed / total) * 100);
+    }
 
   const isBookmarked = bookmarkedWords.includes(currentWord.korean);
 
