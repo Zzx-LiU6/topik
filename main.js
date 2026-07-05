@@ -654,11 +654,17 @@ async function renderOverviewView() {
     allWords = allWords.concat(allVocabularySets[setKey] || []);
   }
 
-  const statusCount = { new: 0, review: 0, mastered: 0, permanent: 0 };
+  const statusCount = { new: 0, learning: 0, permanent: 0 };
 
   allWords.forEach(w => {
-    const status = getWordStatus(w.id);
-    statusCount[status]++;
+    const s = getWordStatus(w.id);
+    if (s === 'permanent') {
+      statusCount.permanent++;
+    } else if (s === 'new') {
+      statusCount.new++;
+    } else {
+      statusCount.learning++;   // review + mastered 都算学习中
+    }
   });
 
   const total = allWords.length;
@@ -729,23 +735,20 @@ async function renderOverviewView() {
         <div class="flex items-center justify-center mb-4">
           <svg viewBox="0 0 36 36" class="w-32 h-32">
             <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
+            <!-- 未学习（灰色） -->
             <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
                     stroke-dasharray="${total > 0 ? (statusCount.new/total)*100 : 0} 100"
                     stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F59E0B" stroke-width="3"
-                    stroke-dasharray="${total > 0 ? (statusCount.review/total)*100 : 0} 100"
+            <!-- 学习中（棕色） -->
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
+                    stroke-dasharray="${total > 0 ? (statusCount.learning/total)*100 : 0} 100"
                     stroke-dashoffset="-${total > 0 ? (statusCount.new/total)*100 : 0}"
                     stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
-                    stroke-dasharray="${total > 0 ? (statusCount.mastered/total)*100 : 0} 100"
-                    stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.review)/total)*100 : 0}"
-                    stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+            <!-- 已掌握（绿色） -->
             <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
                     stroke-dasharray="${total > 0 ? (statusCount.permanent/total)*100 : 0} 100"
-                    stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.review + statusCount.mastered)/total)*100 : 0}"
+                    stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.learning)/total)*100 : 0}"
                     stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-            <text x="18" y="18" text-anchor="middle" class="fill-coffee-500" font-size="4" font-weight="500">${total > 0 ? Math.round(((statusCount.mastered + statusCount.permanent)/total)*100) : 0}%</text>
-            <text x="18" y="24" text-anchor="middle" class="fill-coffee-400" font-size="3">学习进度</text>
           </svg>
         </div>
         <div class="flex flex-wrap justify-center gap-3 text-sm">
@@ -754,16 +757,12 @@ async function renderOverviewView() {
             <span class="text-coffee-500">未学习 ${statusCount.new}</span>
           </div>
           <div class="flex items-center">
-            <span class="w-3 h-3 rounded-full bg-amber-500 mr-1"></span>
-            <span class="text-coffee-500">待复习 ${statusCount.review}</span>
-          </div>
-          <div class="flex items-center">
             <span class="w-3 h-3 rounded-full bg-coffee-500 mr-1"></span>
-            <span class="text-coffee-500">今日已学 ${statusCount.mastered}</span>
+            <span class="text-coffee-500">学习中 ${statusCount.learning}</span>
           </div>
           <div class="flex items-center">
             <span class="w-3 h-3 rounded-full bg-green-500 mr-1"></span>
-            <span class="text-coffee-500">永久掌握 ${statusCount.permanent}</span>
+            <span class="text-coffee-500">已掌握 ${statusCount.permanent}</span>
           </div>
         </div>
       </div>
@@ -986,7 +985,6 @@ async function handleAction(action) {
         today,
         [1, 2, 4, 7, 15, 30][Math.min(wordProgress[currentWord.id].reviewCount, 5)]
       );
-      wordProgress[currentWord.id].lastStudiedDate = today;
     }
 
     queue.splice(state.currentIndex, 1);
@@ -1019,20 +1017,10 @@ async function handleAction(action) {
     if (state.currentIndex >= queue.length) {
       state.currentIndex = 0;
     }
-   } else if (action === 'review') {
-       // 标记今天复习过
-       if (wordProgress[currentWord.id]) {
-         wordProgress[currentWord.id].lastStudiedDate = today;
-       } else {
-         // 如果之前没有任何记录，则创建一个基础记录
-         wordProgress[currentWord.id] = {
-           status: 'new',
-           lastStudiedDate: today
-         };
-       }
-       queue.splice(state.currentIndex, 1);
-       queue.push(currentWord);
-     }
+  } else if (action === 'review') {
+    queue.splice(state.currentIndex, 1);
+    queue.push(currentWord);
+  }
 
   saveToStorage();
   resetCard();
