@@ -1263,7 +1263,7 @@ async function speakWithGoogleTTS(text) {
 }
 
 // Toast 提示（可自定义时长）
-function showToast(msg, duration = 2500) {
+function showToast(msg, duration = 1000) {
   const toast = document.createElement('div');
   toast.textContent = msg;
   toast.style.cssText = `
@@ -1280,7 +1280,8 @@ function showToast(msg, duration = 2500) {
     opacity: 0;
     transition: opacity 0.3s;
     text-align: center;
-    max-width: 90vw;
+    width: max-content;
+    max-width: 95vw;
   `;
   document.body.appendChild(toast);
   requestAnimationFrame(() => (toast.style.opacity = '1'));
