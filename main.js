@@ -447,12 +447,16 @@ async function renderHomeView() {
              onclick="startLearnNew()">
           <div class="flex items-start justify-between mb-3">
             <div class="text-3xl">📖</div>
-            <div class="text-xs px-2 py-1 rounded-full ${currentSetCompleted >= currentSetTotal ? 'bg-green-100 text-green-600' : 'bg-cream-200 text-coffee-500'}">
+            <div class="text-xs px-2 py-1 rounded-full bg-cream-200 text-coffee-500">
               词库第${state.currentSet}套
             </div>
           </div>
           <h2 class="text-lg font-medium text-coffee-600 mb-1">今日新词背诵</h2>
-          <p class="text-sm text-coffee-400 mb-3">待学 ${Math.max(0, currentSetTotal - currentSetCompleted)} 个单词</p>
+          <p class="text-sm text-coffee-400 mb-3">${(() => {
+            const today = getToday();
+            const todayNewCount = Object.values(wordProgress).filter(p => p.firstLearnedDate === today && (p.status === 'mastered' || p.status === 'permanent')).length;
+            return todayNewCount > 0 ? `今日已学习 ${todayNewCount} 词` : '今天还没有开始学习哦';
+          })()}
           <div class="bg-cream-200 rounded-full h-2">
             <div class="bg-coffee-400 h-2 rounded-full transition-all duration-300" style="width: ${(currentSetCompleted / currentSetTotal) * 100}%"></div>
           </div>
