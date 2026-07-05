@@ -660,16 +660,21 @@ async function renderOverviewView() {
     allWords = allWords.concat(allVocabularySets[setKey] || []);
   }
 
-  const statusCount = { new: 0, learning: 0, permanent: 0 };
-
+  const statusCount = { new: 0, learning: 0, permanent: 0, review: 0, mastered: 0 };
   allWords.forEach(w => {
     const s = getWordStatus(w.id);
     if (s === 'permanent') {
       statusCount.permanent++;
+    } else if (s === 'review') {
+      statusCount.review++;
+      statusCount.learning++;
+    } else if (s === 'mastered') {
+      statusCount.mastered++;
+      statusCount.learning++;
     } else if (s === 'new') {
       statusCount.new++;
     } else {
-      statusCount.learning++;   // review + mastered 都算学习中
+    statusCount.learning++; // 兜底
     }
   });
 
@@ -736,7 +741,7 @@ async function renderOverviewView() {
         ${rawKeyword ? `<p class="text-xs text-coffee-400 mt-1">搜索结果：${filteredWords.length} 个单词</p>` : ''}
       </div>
 
-      <!-- 饼图 + 统计 -->
+            <!-- 饼图 + 统计 -->
       <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
         <div class="flex items-center justify-center mb-4">
           <svg viewBox="0 0 36 36" class="w-32 h-32">
@@ -755,6 +760,8 @@ async function renderOverviewView() {
                     stroke-dasharray="${total > 0 ? (statusCount.permanent/total)*100 : 0} 100"
                     stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.learning)/total)*100 : 0}"
                     stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+            <!-- 中间固定图标 -->
+            <text x="18" y="19" text-anchor="middle" font-size="7">📊</text>
           </svg>
         </div>
         <div class="flex flex-wrap justify-center gap-3 text-sm">
@@ -770,6 +777,10 @@ async function renderOverviewView() {
             <span class="w-3 h-3 rounded-full bg-green-500 mr-1"></span>
             <span class="text-coffee-500">已掌握 ${statusCount.permanent}</span>
           </div>
+        </div>
+        <!-- 明细数字 -->
+        <div class="text-xs text-coffee-400 text-center mt-2">
+          待复习 ${statusCount.review} 词 · 今日已学 ${statusCount.mastered} 词
         </div>
       </div>
 
