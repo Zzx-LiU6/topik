@@ -342,7 +342,6 @@ async function renderCurrentView() {
     case 'wordDetail': await renderWordDetailView(state.targetWord); break;
     case 'quiz': await renderQuizView(); break;
     case 'wrong': await renderWrongView(); break;
-    case 'wrong': await renderWrongView(); break;
     case 'calendar': await renderCalendarView(); break;
   }
 }
@@ -425,8 +424,8 @@ async function renderHomeView() {
         </button>
       </div>
 
-      <!-- 功能模块 -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4 mb-6">
+      <!-- 功能模块卡片网格 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4 mb-10">
         <!-- 今日新词 -->
         <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
              onclick="startLearnNew()">
@@ -480,19 +479,16 @@ async function renderHomeView() {
           <h2 class="text-lg font-medium text-coffee-600 mb-1">生词收藏本</h2>
           <p class="text-sm text-coffee-400">${bookmarkCount > 0 ? '复习收藏的难点词汇' : '暂无收藏单词'}</p>
         </div>
-      </div>
-    </div>
 
-
-    <!-- 学习日历 -->
-    <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg mb-6"
-         onclick="startCalendar()">
-      <div class="flex items-start justify-between mb-3">
-        <div class="text-3xl">📅</div>
-      </div>
-      <h2 class="text-lg font-medium text-coffee-600 mb-1">学习日历</h2>
-      <p class="text-sm text-coffee-400">记录每天的学习足迹</p>
-    </div>
+        <!-- 学习日历 -->
+        <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+             onclick="startCalendar()">
+          <div class="flex items-start justify-between mb-3">
+            <div class="text-3xl">📅</div>
+          </div>
+          <h2 class="text-lg font-medium text-coffee-600 mb-1">学习日历</h2>
+          <p class="text-sm text-coffee-400">记录每天的学习足迹</p>
+        </div>
 
         <!-- 词汇状态总览 -->
         <div class="home-card bg-white rounded-3xl p-5 shadow-md border border-cream-300 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -504,34 +500,59 @@ async function renderHomeView() {
           <h2 class="text-lg font-medium text-coffee-600 mb-1">词汇状态总览</h2>
           <p class="text-sm text-coffee-400">查看全部词汇掌握情况</p>
           <div class="mt-3 flex justify-center">
-            <svg viewBox="0 0 36 36" class="w-16 h-16">
-              <!-- 底层完整底色环 -->
-              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
-              <!-- 1.未学习 灰色 -->
+          <svg viewBox="0 0 36 36" class="w-16 h-16">
+            <!-- 底层完整底色环 -->
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
+            ${(()=>{
+              const total = totalWords;
+              const pNew = total > 0 ? (statusCount.new / total) * 100 : 0;
+              const pLearning = total > 0 ? ((statusCount.mastered + statusCount.review) / total) * 100 : 0;
+              const pPermanent = total > 0 ? (statusCount.permanent / total) * 100 : 0;
+              const dispLearning = Math.max(0.3, pLearning);
+              const dispPermanent = Math.max(0.3, pPermanent);
+              return `
+              <!-- 未学习 -->
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
-                      stroke-dasharray="${totalWords > 0 ? (statusCount.new/totalWords)*100 : 0} 100"
+                      stroke-dasharray="${pNew} 100"
                       stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <!-- 2.学习中 棕色，只有数量>0才渲染，强制最小0.3%宽度保证看得见 -->
-              ${statusCount.learning > 0 ? `
+              <!-- 学习中棕色 -->
+              ${pLearning > 0 ? `
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
-                   stroke-dasharray="${totalWords > 0 ? Math.max(0.3, (statusCount.learning/totalWords)*100) : 0} 100"
-                   stroke-dashoffset="-${totalWords > 0 ? (statusCount.new / totalWords) * 100 : 0}"
+                   stroke-dasharray="${dispLearning} 100"
+                   stroke-dashoffset="-${pNew}"
                    stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
               ` : ''}
-              <!-- 3.已掌握 绿色，只有数量>0才渲染，0条时直接不生成这一层，消除缺口 -->
-              ${statusCount.permanent > 0 ? `
+              <!-- 永久掌握绿色 -->
+              ${pPermanent > 0 ? `
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
-                   stroke-dasharray="${totalWords > 0 ? (statusCount.permanent/totalWords)*100 : 0} 100"
-                   stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.learning) / totalWords) * 100 : 0}"
+                   stroke-dasharray="${dispPermanent} 100"
+                   stroke-dashoffset="-${pNew + pLearning}"
                    stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
               ` : ''}
-              <!-- 中间固定图标 -->
-             <text x="18" y="20.5" text-anchor="middle" font-size="6">📊</text>
-            </svg>
+              `;
+            })()}
+            <!-- 中间固定图标 -->
+           <text x="18" y="20.5" text-anchor="middle" font-size="6">📊</text>
+          </svg>
           </div>
         </div>
+      </div>
+
+      <!-- ========== 页面最底部来源标注（整页底端，不在卡片里） ========== -->
+      <div class="mt-12 text-center text-sm text-coffee-300 pb-4">
+        <span>单词来源：</span>
+        <a 
+          href="https://www.topik.go.kr/TWINFO/TWINFO0021.do?bbsId=BBSMSTR00073&nttId=1553&nttClCode1=ALL&pageIndex=2&searchType=&searchWord=" 
+          target="_blank" 
+          class="underline text-coffee-500 hover:text-coffee-600 transition-colors"
+        >
+          TOPIK 공식 단어 목록
+        </a>
+        <span> · made by LiU</span>
+      </div>
+    </div>
   `;
-  }
+}
 
 // ========== 学习/复习页面（异步） ==========
 async function renderLearnView() {
@@ -835,25 +856,36 @@ async function renderOverviewView() {
       <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
         <div class="flex items-center justify-center mb-4">
         <svg viewBox="0 0 36 36" class="w-32 h-32">
+          <!-- 底层完整底色环 -->
           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
-          <!-- 未学习（灰色） -->
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
-              stroke-dasharray="${total > 0 ? (statusCount.new/total)*100 : 0} 100"
+          ${(()=>{
+            const total = levelFilteredWords.length;
+            const pNew = total > 0 ? (statusCount.new / total) * 100 : 0;
+            const pLearning = total > 0 ? ((statusCount.mastered + statusCount.review) / total) * 100 : 0;
+            const pPermanent = total > 0 ? (statusCount.permanent / total) * 100 : 0;
+            const dispLearning = Math.max(0.3, pLearning);
+            const dispPermanent = Math.max(0.3, pPermanent);
+            return `
+            <!-- 1.未学习 浅米色 -->
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
+                stroke-dasharray="${pNew} 100"
                 stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-          <!-- 学习中（棕色）仅数量>0渲染，最小0.3%保证可见 -->
-          ${statusCount.learning > 0 ? `
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
-              stroke-dasharray="${total > 0 ? Math.max(0.3, (statusCount.learning/total)*100) : 0} 100"
-              stroke-dashoffset="-${total > 0 ? (statusCount.new/total)*100 : 0}"
-              stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-          ` : ''}
-          <!-- 已掌握（绿色）仅数量>0才渲染，0条直接不画 -->
-          ${statusCount.permanent > 0 ? `
-          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
-              stroke-dasharray="${total > 0 ? (statusCount.permanent/total)*100 : 0} 100"
-              stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.learning)/total)*100 : 0}"
-              stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-          ` : ''}
+            <!-- 2.学习中（今日已学+待复习，不含永久掌握）棕色 -->
+            ${pLearning > 0 ? `
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
+                stroke-dasharray="${dispLearning} 100"
+                stroke-dashoffset="-${pNew}"
+                stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+            ` : ''}
+            <!-- 3.永久掌握 绿色，偏移=未学习+学习中两段总和 -->
+            ${pPermanent > 0 ? `
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
+                stroke-dasharray="${dispPermanent} 100"
+                stroke-dashoffset="-${pNew + pLearning}"
+                stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+            ` : ''}
+            `;
+          })()}
           <!-- 中间固定图标 -->
           <text x="18" y="20.5" text-anchor="middle" font-size="7">📊</text>
          </svg>
@@ -1168,6 +1200,7 @@ function startQuiz(mode = 'today') {
     };
   });
 
+  state.quizMode = mode;
   state.quizIndex = 0;
   state.quizScore = 0;
   state.currentView = 'quiz';
@@ -1218,8 +1251,74 @@ function showQuizModePicker() {
     btn.addEventListener('click', () => {
       const mode = btn.dataset.mode;
       overlay.remove();
-      startQuiz(mode);
+      onQuizModeSelected(mode);   // 不直接开始，先检查存档
     });
+  });
+}
+
+function onQuizModeSelected(mode) {
+  const saved = localStorage.getItem('topik_quiz_state');
+  if (saved) {
+    try {
+      const quizState = JSON.parse(saved);
+      if (quizState.questions && quizState.questions.length > 0 && quizState.index < quizState.questions.length) {
+        // 有未完成的测验，弹出自定义恢复弹窗
+        showQuizResumeDialog(mode, quizState);
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem('topik_quiz_state');
+    }
+  }
+  // 没有存档，直接开始新测验
+  startQuiz(mode);
+}
+
+function showQuizResumeDialog(newMode, savedState) {
+  const overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-coffee-600/30 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 w-[90%] max-w-sm border border-cream-300 fade-in text-center">
+      <div class="text-4xl mb-4">📋</div>
+      <h3 class="text-lg font-medium text-coffee-600 mb-2">检测到未完成的测验</h3>
+      <p class="text-sm text-coffee-400 mb-6">
+        上次进度：第 ${savedState.index + 1}/${savedState.questions.length} 题，
+        已答对 ${savedState.score} 题
+      </p>
+      <div class="space-y-3">
+        <button class="w-full px-4 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all" id="resume-quiz-btn">
+          继续上次测验
+        </button>
+        <button class="w-full px-4 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all border border-cream-300" id="new-quiz-btn">
+          开始新测验
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#resume-quiz-btn').addEventListener('click', () => {
+    overlay.remove();
+    state.quizQuestions = savedState.questions;
+    state.quizIndex = savedState.index;
+    state.quizScore = savedState.score;
+    state.quizMode = savedState.mode || 'today';
+    state.currentView = 'quiz';
+    renderCurrentView();
+  });
+
+  overlay.querySelector('#new-quiz-btn').addEventListener('click', () => {
+    overlay.remove();
+    localStorage.removeItem('topik_quiz_state');
+    startQuiz(newMode);
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+      localStorage.removeItem('topik_quiz_state');
+      startQuiz(newMode);
+    }
   });
 }
 
@@ -1239,12 +1338,17 @@ async function renderQuizView() {
 
   elements.app.innerHTML = `
     <div>
-      <header class="mb-6">
+    <header class="mb-6">
+      <div class="flex items-center justify-between">
         <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
           <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           返回首页
         </button>
-      </header>
+        <button onclick="saveQuizAndExit()" class="text-xs px-3 py-1 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-full transition">
+          💾 保存并退出
+        </button>
+      </div>
+    </header>
 
       <div class="mb-6">
         <div class="flex items-center justify-between mb-3">
@@ -1303,6 +1407,16 @@ function handleQuizAnswer(questionIndex, choiceIndex) {
       renderQuizResult();
     }
   }, 800);
+}
+
+function saveQuizAndExit() {
+  localStorage.setItem('topik_quiz_state', JSON.stringify({
+    questions: state.quizQuestions,
+    index: state.quizIndex,
+    score: state.quizScore,
+    mode: state.quizMode
+  }));
+  goHome();
 }
 
 function renderQuizResult() {
@@ -1492,7 +1606,7 @@ function getWordsByDate(dateStr, type) {
   for (const [wordId, progress] of Object.entries(wordProgress)) {
     let match = false;
     if (type === 'new' && progress.firstLearnedDate === dateStr) match = true;
-    if (type === 'review' && progress.lastReviewDate === dateStr) match = true;
+    if (type === 'review' && progress.lastReviewDate === dateStr && progress.firstLearnedDate !== dateStr) match = true;
     if (type === 'permanent' && progress.permanentDate === dateStr) match = true;
     if (match) {
       for (const setKey of sortedSetKeys) {
@@ -1515,7 +1629,7 @@ function getCalendarData(year, month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const newCount = Object.values(wordProgress).filter(p => p.firstLearnedDate === dateStr).length;
-    const reviewCount = Object.values(wordProgress).filter(p => p.lastReviewDate === dateStr).length;
+    const reviewCount = Object.values(wordProgress).filter(p => p.lastReviewDate === dateStr && p.firstLearnedDate !== dateStr).length;
     const permanentCount = Object.values(wordProgress).filter(p => p.permanentDate === dateStr).length;
     days.push({ day: d, dateStr, newCount, reviewCount, permanentCount, isToday: dateStr === today });
   }
@@ -2158,6 +2272,9 @@ window.startCalendar = startCalendar;
 window.changeCalendarMonth = changeCalendarMonth;
 window.selectCalendarDate = selectCalendarDate;
 window.showQuizModePicker = showQuizModePicker;
+window.saveQuizAndExit = saveQuizAndExit;
+window.onQuizModeSelected = onQuizModeSelected;
+window.showQuizResumeDialog = showQuizResumeDialog;
 
 // ========== 语音初始化 ==========
 if ('speechSynthesis' in window) {
