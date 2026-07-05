@@ -680,15 +680,15 @@ ${state.mode === 'viewOnly' ? `
 </div>
 ` : `
         <div class="flex gap-3">
-          <button onclick="handleAction('review')" class="action-btn flex-1 px-6 py-3 bg-cream-300 hover:bg-cream-400 text-coffee-600 rounded-2xl font-medium transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 border border-cream-300">
-            再看一次
-          </button>
-          <button onclick="handleAction('mastered')" class="action-btn flex-1 px-6 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95">
-            本轮记住
-          </button>
-          <button onclick="handleAction('permanent')" class="action-btn flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95">
-            彻底掌握
-          </button>
+        <button onclick="handleAction('review')" class="action-btn flex-1 px-2 py-3 bg-cream-300 hover:bg-cream-400 text-coffee-600 rounded-2xl font-medium transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 border border-cream-300 whitespace-nowrap text-sm">
+          再看一次
+        </button>
+        <button onclick="handleAction('mastered')" class="action-btn flex-1 px-2 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 whitespace-nowrap text-sm">
+          本轮记住
+        </button>
+        <button onclick="handleAction('permanent')" class="action-btn flex-1 px-2 py-3 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-medium transition-all duration-200 hover:shadow-md hover:scale-105 active:scale-95 whitespace-nowrap text-sm">
+          彻底掌握
+        </button>
         </div>
         <p class="text-center text-xs text-coffee-300">
           提示：「本轮记住」计入周期复习；「彻底掌握」永久归档不再推送；「再看一次」延后复习不计进度
