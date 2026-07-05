@@ -506,15 +506,11 @@ async function renderLearnView() {
     //【修改】收藏本模式：仅用currentIndex作为分子，total为队列长度
     completed = state.currentIndex;
     percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-    } else {
-      // 新词模式：直接统计当前套装中已完成（mastered/permanent）的单词数
-      const currentSetWords = allVocabularySets[state.currentSetKey] || [];
-      completed = currentSetWords.filter(w => {
-        const s = wordProgress[w.id]?.status;
-        return s === 'mastered' || s === 'permanent';
-      }).length;
-     percent = Math.round((completed / total) * 100);
-    }
+  } else {
+    // 新词模式：用套装已完成数
+    completed = await getCompletedCountForSet(state.currentSetKey);
+    percent = Math.round((completed / total) * 100);
+  }
 
   const isBookmarked = bookmarkedWords.includes(currentWord.korean);
 
@@ -538,13 +534,7 @@ ${!isBookmarks ? `
         <div class="flex items-center justify-between mb-3">
           <h1 class="text-lg font-medium text-coffee-600">${pageTitle}</h1>
           <div class="text-right">
-            <span class="text-2xl font-light text-coffee-500">${total > 0 ? Math.round(((() => {
-              const currentSetWords = allVocabularySets[state.currentSetKey] || [];
-              return currentSetWords.filter(w => {
-                const s = wordProgress[w.id]?.status;
-                return s === 'mastered' || s === 'permanent';
-              }).length;
-            })() / total) * 100) : 0}%</span>
+            <span class="text-2xl font-light text-coffee-500">${percent}%</span>
             <p class="text-xs text-coffee-400 mt-1">完成度</p>
           </div>
         </div>
@@ -552,17 +542,7 @@ ${!isBookmarks ? `
           <div class="h-full bg-gradient-to-r from-coffee-400 to-coffee-500 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
         </div>
         <p class="text-center text-sm text-coffee-400 mt-2">
-          ${
-            isReview || isBookmarks
-              ? `进度 ${state.currentIndex + 1}/${total}`
-              : `学习进度 ${(() => {
-                  const currentSetWords = allVocabularySets[state.currentSetKey] || [];
-                  return currentSetWords.filter(w => {
-                    const s = wordProgress[w.id]?.status;
-                    return s === 'mastered' || s === 'permanent';
-                  }).length;
-                })()} 个 / 共 ${total} 个`
-          }
+          ${isReview || isBookmarks ? `进度 ${state.currentIndex + 1}/${total}` : `学习进度 ${completed} 个 / 共 ${total} 个`}
         </p>
       </div>
 ` : ''}
@@ -988,7 +968,6 @@ async function handleAction(action) {
   }
 
   const currentWord = queue[state.currentIndex];
-  console.log('handleAction', action, currentWord?.id, '进度写入前:', JSON.stringify(wordProgress));
   if (!currentWord) return;
 
   const today = getToday();
@@ -1045,7 +1024,6 @@ async function handleAction(action) {
   }
 
   saveToStorage();
-  console.log('进度写入后:', JSON.stringify(wordProgress));
   resetCard();
   renderCurrentView();
 }
