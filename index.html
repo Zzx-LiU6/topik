@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TOPIK 韩语背单词</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cream: {
+                50: '#FFFEFA',
+                100: '#FFF9F0',
+                200: '#FFF5E6',
+                300: '#F5EBE0',
+                400: '#E8DDD4',
+                500: '#D4C4B5',
+                600: '#B8A89A',
+                700: '#9A8A7A',
+              },
+              coffee: {
+                300: '#C9B8A8',
+                400: '#A89880',
+                500: '#8B7355',
+                600: '#6B5B45',
+              }
+            },
+            fontFamily: {
+              sans: ['Noto Sans KR', 'Noto Sans SC', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-gradient-to-b from-cream-100 to-cream-200 font-sans text-coffee-600">
+    <div id="app" class="max-w-2xl mx-auto px-4 py-6 min-h-screen"></div>
+
+    <!-- 完成弹窗 -->
+    <div id="completion-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-coffee-600/30 backdrop-blur-sm" onclick="closeCompletionModal()"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md">
+        <div class="bg-cream-100 rounded-3xl shadow-2xl p-8 text-center border border-cream-300 fade-in">
+          <div class="text-5xl mb-4">🎉</div>
+          <h2 class="text-xl md:text-2xl font-medium text-coffee-600 mb-3">恭喜完成本轮背诵</h2>
+          <p class="text-sm text-coffee-400 mb-6 leading-relaxed">
+            您已完成本轮单词学习！<br>
+            请选择下一步操作：
+          </p>
+          <div class="space-y-3">
+            <button onclick="resetCurrentSet()" class="w-full px-6 py-3 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-cream-300">
+              🔄 重置本轮复习
+            </button>
+            <button onclick="loadNewSet()" class="w-full px-6 py-3 bg-coffee-400 hover:bg-coffee-500 text-white rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95">
+              📚 背诵全新20词
+            </button>
+            <button onclick="closeCompletionModal(); goHome();" class="w-full px-6 py-3 bg-white hover:bg-cream-100 text-coffee-500 rounded-2xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-cream-300">
+              ✕ 关闭弹窗
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 重置确认弹窗 -->
+    <div id="reset-modal" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-coffee-600/30 backdrop-blur-sm" onclick="closeResetModal()"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm">
+        <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 text-center border border-cream-300 fade-in">
+          <div class="text-4xl mb-3">⚠️</div>
+          <h2 class="text-lg font-medium text-coffee-600 mb-2">确认重置进度？</h2>
+          <p class="text-sm text-coffee-400 mb-5">
+            重置将清空当前词库的学习记录。<br>此操作不可撤销。
+          </p>
+          <div class="flex gap-3 justify-center">
+            <button onclick="confirmReset()" class="px-5 py-2.5 bg-coffee-400 hover:bg-coffee-500 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 text-sm">
+              确认重置
+            </button>
+            <button onclick="closeResetModal()" class="px-5 py-2.5 bg-cream-200 hover:bg-cream-300 text-coffee-600 rounded-xl font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-cream-300 text-sm">
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

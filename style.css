@@ -1,0 +1,75 @@
+/* TOPIK 韩语背单词 - 基础样式 */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* 文本选中色 */
+::selection {
+  background-color: rgba(139, 115, 85, 0.2);
+  color: #6B5B45;
+}
+
+/* 移动端点击高亮去除 */
+button,
+.flashcard-front,
+.flashcard-back {
+  -webkit-tap-highlight-color: transparent;
+  tap-highlight: none;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9B8A8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A89880;
+}
+
+/* Firefox滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C9B8A8 transparent;
+}
+
+/* 输入框和按钮焦点 */
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid #A89880;
+  outline-offset: 2px;
+}
