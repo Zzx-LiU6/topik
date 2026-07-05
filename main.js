@@ -355,6 +355,7 @@ async function renderHomeView() {
   const reviewWords = await getWordsToReviewToday();
   const reviewCount = reviewWords.length;
   const currentSetCompleted = await getCompletedCountForSet(state.currentSetKey);
+  console.log('进度计算', { completed, total, setKey: state.currentSetKey, wordProgressKeys: Object.keys(wordProgress) });
   const bookmarkCount = bookmarkedWords.length;
   const totalSetCount = getTotalSetCount();
 
@@ -1025,6 +1026,7 @@ async function handleAction(action) {
   }
 
   saveToStorage();
+  console.log('进度写入后:', JSON.stringify(wordProgress));
   resetCard();
   renderCurrentView();
 }
