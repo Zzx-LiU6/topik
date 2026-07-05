@@ -456,7 +456,7 @@ async function renderHomeView() {
                       stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.learning)/totalWords)*100 : 0}"
                       stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
               <!-- 中间固定图标 -->
-              <text x="18" y="19" text-anchor="middle" font-size="6">📊</text>
+              <text x="18" y="20.5" text-anchor="middle" font-size="6">📊</text>
             </svg>
           </div>
         </div>
@@ -761,7 +761,7 @@ async function renderOverviewView() {
                     stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.learning)/total)*100 : 0}"
                     stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
             <!-- 中间固定图标 -->
-            <text x="18" y="19" text-anchor="middle" font-size="7">📊</text>
+            <text x="18" y="20.5" text-anchor="middle" font-size="7">📊</text>
           </svg>
         </div>
         <div class="flex flex-wrap justify-center gap-3 text-sm">
