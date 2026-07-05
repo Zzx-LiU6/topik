@@ -359,17 +359,26 @@ async function renderHomeView() {
   const totalSetCount = getTotalSetCount();
 
   let totalWords = 0;
-  let statusCount = { new: 0, review: 0, mastered: 0, permanent: 0 };
+  let statusCount = { new: 0, learning: 0, permanent: 0, review: 0, mastered: 0 };
 
   for (const setKey of sortedSetKeys) {
     const words = allVocabularySets[setKey] || [];
     totalWords += words.length;
     words.forEach(w => {
-      const status = getWordStatus(w.id);
-      if (status === 'new') statusCount.new++;
-      else if (status === 'review') statusCount.review++;
-      else if (status === 'permanent') statusCount.permanent++;
-      else statusCount.mastered++;
+      const s = getWordStatus(w.id);
+      if (s === 'permanent') {
+        statusCount.permanent++;
+      } else if (s === 'review') {
+        statusCount.review++;
+        statusCount.learning++;
+      } else if (s === 'mastered') {
+        statusCount.mastered++;
+        statusCount.learning++;
+      } else if (s === 'new') {
+        statusCount.new++;
+      } else {
+        statusCount.learning++;
+      }
     });
   }
 
@@ -440,23 +449,28 @@ async function renderHomeView() {
           <p class="text-sm text-coffee-400">查看全部词汇掌握情况</p>
           <div class="mt-3 flex justify-center">
             <svg viewBox="0 0 36 36" class="w-16 h-16">
+              <!-- 底层完整底色环 -->
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
-              <!-- 未学习（灰色） -->
+              <!-- 1.未学习 灰色 -->
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
                       stroke-dasharray="${totalWords > 0 ? (statusCount.new/totalWords)*100 : 0} 100"
                       stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <!-- 学习中（棕色） -->
+              <!-- 2.学习中 棕色，只有数量>0才渲染，强制最小0.3%宽度保证看得见 -->
+              ${statusCount.learning > 0 ? `
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
-                      stroke-dasharray="${totalWords > 0 ? (statusCount.learning/totalWords)*100 : 0} 100"
-                      stroke-dashoffset="-${totalWords > 0 ? (statusCount.new/totalWords)*100 : 0}"
-                      stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <!-- 已掌握（绿色） -->
+                   stroke-dasharray="${totalWords > 0 ? Math.max(0.3, (statusCount.learning/totalWords)*100) : 0} 100"
+                   stroke-dashoffset="-${totalWords > 0 ? (statusCount.new / totalWords) * 100 : 0}"
+                   stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+              ` : ''}
+              <!-- 3.已掌握 绿色，只有数量>0才渲染，0条时直接不生成这一层，消除缺口 -->
+              ${statusCount.permanent > 0 ? `
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
-                      stroke-dasharray="${totalWords > 0 ? (statusCount.permanent/totalWords)*100 : 0} 100"
-                      stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.learning)/totalWords)*100 : 0}"
-                      stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+                   stroke-dasharray="${totalWords > 0 ? (statusCount.permanent/totalWords)*100 : 0} 100"
+                   stroke-dashoffset="-${totalWords > 0 ? ((statusCount.new + statusCount.learning) / totalWords) * 100 : 0}"
+                   stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+              ` : ''}
               <!-- 中间固定图标 -->
-              <text x="18" y="20.5" text-anchor="middle" font-size="6">📊</text>
+             <text x="18" y="20.5" text-anchor="middle" font-size="6">📊</text>
             </svg>
           </div>
         </div>
@@ -474,7 +488,7 @@ async function renderHomeView() {
       </div>
     </div>
   `;
-}
+  }
 
 // ========== 学习/复习页面（异步） ==========
 async function renderLearnView() {
@@ -744,25 +758,29 @@ async function renderOverviewView() {
             <!-- 饼图 + 统计 -->
       <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
         <div class="flex items-center justify-center mb-4">
-          <svg viewBox="0 0 36 36" class="w-32 h-32">
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
-            <!-- 未学习（灰色） -->
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
-                    stroke-dasharray="${total > 0 ? (statusCount.new/total)*100 : 0} 100"
-                    stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-            <!-- 学习中（棕色） -->
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
-                    stroke-dasharray="${total > 0 ? (statusCount.learning/total)*100 : 0} 100"
-                    stroke-dashoffset="-${total > 0 ? (statusCount.new/total)*100 : 0}"
-                    stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-            <!-- 已掌握（绿色） -->
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
-                    stroke-dasharray="${total > 0 ? (statusCount.permanent/total)*100 : 0} 100"
-                    stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.learning)/total)*100 : 0}"
-                    stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-            <!-- 中间固定图标 -->
-            <text x="18" y="20.5" text-anchor="middle" font-size="7">📊</text>
-          </svg>
+        <svg viewBox="0 0 36 36" class="w-32 h-32">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
+          <!-- 未学习（灰色） -->
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
+              stroke-dasharray="${total > 0 ? (statusCount.new/total)*100 : 0} 100"
+                stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+          <!-- 学习中（棕色）仅数量>0渲染，最小0.3%保证可见 -->
+          ${statusCount.learning > 0 ? `
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
+              stroke-dasharray="${total > 0 ? Math.max(0.3, (statusCount.learning/total)*100) : 0} 100"
+              stroke-dashoffset="-${total > 0 ? (statusCount.new/total)*100 : 0}"
+              stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+          ` : ''}
+          <!-- 已掌握（绿色）仅数量>0才渲染，0条直接不画 -->
+          ${statusCount.permanent > 0 ? `
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
+              stroke-dasharray="${total > 0 ? (statusCount.permanent/total)*100 : 0} 100"
+              stroke-dashoffset="-${total > 0 ? ((statusCount.new + statusCount.learning)/total)*100 : 0}"
+              stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+          ` : ''}
+          <!-- 中间固定图标 -->
+          <text x="18" y="20.5" text-anchor="middle" font-size="7">📊</text>
+         </svg>
         </div>
         <div class="flex flex-wrap justify-center gap-3 text-sm">
           <div class="flex items-center">
