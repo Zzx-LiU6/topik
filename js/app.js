@@ -173,7 +173,11 @@ async function init() {
       saveToStorage();
     }
   }
-    // （已禁用自动恢复，刷新始终回到首页）
+      // 如果 URL 带有 hash，尝试恢复视图（用于刷新/书签恢复）
+  const hash = window.location.hash.replace('#', '');
+  if (hash && hash !== 'home') {
+    state.currentView = hash;
+  }
 
   syncCurrentSetKey();
   setupElements();
