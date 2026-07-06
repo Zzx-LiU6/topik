@@ -173,11 +173,6 @@ async function init() {
       saveToStorage();
     }
   }
-      // 如果 URL 带有 hash，尝试恢复视图（用于刷新/书签恢复）
-  const hash = window.location.hash.replace('#', '');
-  if (hash && hash !== 'home') {
-    state.currentView = hash;
-  }
 
   syncCurrentSetKey();
   setupElements();
@@ -351,7 +346,7 @@ async function renderCurrentView() {
   
   // 如果不是首页，且 hash 不一样，就推一条历史记录（手机侧滑可返回）
   if (state.currentView !== 'home' && window.location.hash !== `#${state.currentView}`) {
-    history.pushState({ view: state.currentView }, '', `#${state.currentView}`);
+    history.replaceState({ view: state.currentView }, '', `#${state.currentView}`);
   }
 
   if (!vocabularyLoaded) {
@@ -473,13 +468,9 @@ function goHome() {
   
   // ========== 浏览器后退支持（手机侧滑返回） ==========
   window.addEventListener('popstate', (e) => {
-    if (e.state && e.state.view) {
-      state.currentView = e.state.view;
-      renderCurrentView();
-    } else {
-      // 已经到首页了，再后退就真的退出了
-      goHome();
-    }
+    const view = (e.state && e.state.view) ? e.state.view : 'home';
+    state.currentView = view;
+    renderCurrentView();
   });
   
   // ========== 语音初始化 ==========
