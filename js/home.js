@@ -157,7 +157,7 @@ async function renderHomeView() {
                onclick="goToOverview()">
             <div class="flex items-start justify-between mb-3">
               <div class="text-3xl">📊</div>
-              <div class="text-xs px-2 py-1 rounded-full bg-cream-200 text-coffee-500">${totalMastered}/${totalWords}</div>
+              <div class="text-xs px-2 py-1 rounded-full bg-cream-200 text-coffee-500">${statusCount.permanent}/${totalWords}</div>
             </div>
             <h2 class="text-lg font-medium text-coffee-600 mb-1">词汇状态总览</h2>
             <p class="text-sm text-coffee-400">查看全部词汇掌握情况</p>
