@@ -174,6 +174,12 @@ async function init() {
     }
   }
 
+    // 如果 URL 带有 hash，恢复对应视图（用于刷新停留在当前页面）
+    const hash = window.location.hash.replace('#', '');
+    if (hash && hash !== 'home' && hash !== '') {
+      state.currentView = hash;
+    }
+
   syncCurrentSetKey();
   setupElements();
   await renderCurrentView();
@@ -343,10 +349,11 @@ function getWordStatus(wordId) {
 // ========== 视图渲染 ==========
 async function renderCurrentView() {
   elements.app.innerHTML = '';
-  
-  // 如果不是首页，且 hash 不一样，就推一条历史记录（手机侧滑可返回）
-  if (state.currentView !== 'home' && window.location.hash !== `#${state.currentView}`) {
-    history.replaceState({ view: state.currentView }, '', `#${state.currentView}`);
+
+  // 同步 URL hash 与当前视图（刷新时用于恢复）
+  const targetHash = state.currentView === 'home' ? '' : `#${state.currentView}`;
+  if (window.location.hash !== targetHash) {
+    history.replaceState({ view: state.currentView }, '', targetHash);
   }
 
   if (!vocabularyLoaded) {
@@ -388,98 +395,97 @@ function renderLoadError() {
 }
 // ========== 页面跳转 ==========
 function goHome() {
-    clearTimeout(searchTimer);
-    state.currentView = 'home';
-    state.currentIndex = 0;
-    state.searchKeyword = '';  //【修改】清空搜索词
-    renderCurrentView();
-  }
+  clearTimeout(searchTimer);
+  state.currentView = 'home';
+  state.currentIndex = 0;
+  state.searchKeyword = '';  //【修改】清空搜索词
+  history.replaceState({ view: 'home' }, '', window.location.pathname);
+  renderCurrentView();
+}
   
-  function goToOverview() {
-    clearTimeout(searchTimer);
-    state.currentView = 'overview';
-    state.selectedFilter = 'all';
-    state.searchKeyword = '';  //【修改】清空搜索词
-    state.targetWord = null;
-    renderCurrentView();
-  }
+function goToOverview() {
+  clearTimeout(searchTimer);
+  state.currentView = 'overview';
+  state.selectedFilter = 'all';
+  state.searchKeyword = '';  //【修改】清空搜索词
+  state.targetWord = null;
+  renderCurrentView();
+}
   
-  async function goToBookmarks() {
-    const words = await getBookmarkedWords();
-    if (words.length === 0) {
-      goHome();
-      return;
-    }
-    state.currentView = 'bookmarks';
-    state.currentQueue = words;
-    state.currentIndex = 0;
-    renderCurrentView();
+async function goToBookmarks() {
+  const words = await getBookmarkedWords();
+  if (words.length === 0) {
+    goHome();
+    return;
   }
+  state.currentView = 'bookmarks';
+  state.currentQueue = words;
+  state.currentIndex = 0;
+  renderCurrentView();
+}
   
-  function startLearnNew() {
-    state.mode = 'new';
-    state.currentView = 'learn';
-    state.currentIndex = 0;
-    state.currentQueue = [];
-    initializeLearnQueue();
+function startLearnNew() {
+  state.mode = 'new';
+  state.currentView = 'learn';
+  state.currentIndex = 0;
+  state.currentQueue = [];
+  initializeLearnQueue();
   
-    if (state.currentQueue.length === 0) {
-      showCompletionModal();
-      return;
-    }
-    renderCurrentView();
+  if (state.currentQueue.length === 0) {
+    showCompletionModal();
+    return;
   }
+  renderCurrentView();
+}
   
-  async function startReview() {
-    const reviewWords = await getWordsToReviewToday();
-    if (reviewWords.length === 0) {
-      goHome();
-      return;
-    }
-    state.mode = 'review';
-    state.currentView = 'review';
-    state.currentQueue = reviewWords;
-    state.currentIndex = 0;
-    renderCurrentView();
+async function startReview() {
+  const reviewWords = await getWordsToReviewToday();
+  if (reviewWords.length === 0) {
+    goHome();
+    return;
   }
+  state.mode = 'review';
+  state.currentView = 'review';
+  state.currentQueue = reviewWords;
+  state.currentIndex = 0;
+  renderCurrentView();
+}
   
-  // ========== 卡片翻转 ==========
-  function flipCard() {
-    const card = document.getElementById('flashcard');
-    if (card) card.classList.toggle('is-flipped');
-  }
+// ========== 卡片翻转 ==========
+function flipCard() {
+  const card = document.getElementById('flashcard');
+  if (card) card.classList.toggle('is-flipped');
+}
   
-  function resetCard() {
-    const card = document.getElementById('flashcard');
-    if (card) card.classList.remove('is-flipped');
-  }
+function resetCard() {
+  const card = document.getElementById('flashcard');
+  if (card) card.classList.remove('is-flipped');
+}
 
-  // ========== 夜间模式 ==========
-  function toggleDarkMode() {
-    state.darkMode = !state.darkMode;
-    if (state.darkMode) {
-      document.body.classList.add('dark');
-    } else {
-      document.body.classList.remove('dark');
-    }
-    localStorage.setItem('topik_dark_mode', state.darkMode.toString());
-    renderCurrentView(); // 重新渲染以更新按钮图标
+// ========== 夜间模式 ==========
+function toggleDarkMode() {
+  state.darkMode = !state.darkMode;
+  if (state.darkMode) {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
   }
+  localStorage.setItem('topik_dark_mode', state.darkMode.toString());
+  renderCurrentView(); // 重新渲染以更新按钮图标
+}
   
-  // ========== 浏览器后退支持（手机侧滑返回） ==========
+// ========== 浏览器后退支持（手机侧滑返回） ==========
   window.addEventListener('popstate', (e) => {
     const view = (e.state && e.state.view) ? e.state.view : 'home';
     state.currentView = view;
     renderCurrentView();
   });
   
-  // ========== 语音初始化 ==========
+// ========== 语音初始化 ==========
   if ('speechSynthesis' in window) {
     window.speechSynthesis.getVoices();
     window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
   }
   
-  // ========== 启动 ==========
+// ========== 启动 ==========
   document.addEventListener('DOMContentLoaded', init);
-  
-  
