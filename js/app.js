@@ -179,6 +179,50 @@ async function init() {
     if (hash && hash !== 'home' && hash !== '') {
       state.currentView = hash;
     }
+  // 如果恢复到测验页面，从 localStorage 恢复数据
+  if (state.currentView === 'quiz') {
+    const savedQuiz = localStorage.getItem('topik_quiz_state');
+    if (savedQuiz) {
+      try {
+        const qs = JSON.parse(savedQuiz);
+        if (qs.questions && qs.questions.length > 0 && qs.index < qs.questions.length) {
+          state.quizQuestions = qs.questions;
+          state.quizIndex = qs.index || 0;
+          state.quizScore = qs.score || 0;
+          state.quizMode = qs.mode || 'today';
+        } else {
+          state.currentView = 'home';
+        }
+      } catch (e) {
+        state.currentView = 'home';
+      }
+    } else {
+      state.currentView = 'home';
+    }
+  }
+
+  // 如果恢复到拼写页面，从 localStorage 恢复数据
+  if (state.currentView === 'spell') {
+    const savedSpell = localStorage.getItem('topik_spell_state');
+    if (savedSpell) {
+      try {
+        const ss = JSON.parse(savedSpell);
+        if (ss.words && ss.words.length > 0 && ss.index < ss.words.length) {
+          state.spellWords = ss.words;
+          state.spellIndex = ss.index || 0;
+          state.spellScore = ss.score || 0;
+          state.spellResults = ss.results || [];
+          state.spellMode = ss.mode || 'today';
+        } else {
+          state.currentView = 'home';
+        }
+      } catch (e) {
+        state.currentView = 'home';
+      }
+    } else {
+      state.currentView = 'home';
+    }
+  }
 
   syncCurrentSetKey();
   setupElements();
