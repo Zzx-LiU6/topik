@@ -102,7 +102,7 @@ async function renderHomeView() {
             <div class="flex items-start justify-between mb-3">
               <div class="text-3xl">🎯</div>
             </div>
-            <h2 class="text-lg font-medium text-coffee-600 dark:text-slate-100 mb-3">测验·拼写</h2>
+            <h2 class="text-lg font-medium text-coffee-600 dark:text-slate-100 mb-3">练习</h2>
             <div class="flex gap-2 mb-2">
               <!-- 选择按钮 -->
               <button onclick="showQuizModePicker()" class="flex-1 px-4 py-2.5 
