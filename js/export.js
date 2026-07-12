@@ -42,3 +42,5 @@ window.submitSpellAnswer = submitSpellAnswer;
 window.saveSpellAndExit = saveSpellAndExit;
 window.onSpellModeSelected = onSpellModeSelected;
 window.showSpellResumeDialog = showSpellResumeDialog;
+window.toggleKeyboardHelp = toggleKeyboardHelp;
+window.closeKeyboardHelp = closeKeyboardHelp;
