@@ -99,7 +99,7 @@ function showCompletionModal() {
       state.currentSetKey = '1';
       state.currentIndex = 0;
       state.currentQueue = [];
-      saveToStorageDebounced();
+      saveToStorage();
       goHome();
     }
   }
