@@ -275,7 +275,7 @@ function initializeLearnQueue() {
       queue.push(currentWord);
     }
   
-    saveToStorage();
+    saveToStorageDebounced();
     resetCard();
     renderCurrentView();
   }
