@@ -311,14 +311,10 @@ function initializeLearnQueue() {
     state.levelFilter = level;
     renderCurrentView();
   }
-  let searchTimer = null;
-  function debounceSearch(keyword) {
-    clearTimeout(searchTimer);
+  const debounceSearch = debounce(function(keyword) {
     state.searchKeyword = keyword.trim();
-    searchTimer = setTimeout(() => {
-      renderCurrentView();
-    }, 500);
-  }
+    renderCurrentView();
+  }, 500);
   
   // 总览点击单词：打开独立详情页，不进入背诵、不会弹出完成弹窗
   async function startLearnWord(wordId) {
