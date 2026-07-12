@@ -269,15 +269,6 @@ function loadFromStorage() {
   }
 }
 
-let saveTimer = null;
-
-function saveToStorageDebounced() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    saveToStorage();
-  }, 300);
-}
-
 function saveToStorage() {
   try {
     localStorage.setItem(STORAGE_KEYS.wordProgress, JSON.stringify(wordProgress));
@@ -288,6 +279,8 @@ function saveToStorage() {
     console.warn('保存存储失败:', e);
   }
 }
+
+const saveToStorageDebounced = debounce(saveToStorage, 300);
 
 function exportProgress() {
   const data = {
@@ -327,21 +320,6 @@ function importProgress() {
     }
   };
   input.click();
-}
-
-// ========== 日期工具 ==========
-function getToday() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(dateStr, days) {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
 }
 
 // ========== 获取当前有效套装总数 ==========
@@ -458,7 +436,6 @@ function renderLoadError() {
 }
 // ========== 页面跳转 ==========
 function goHome() {
-  clearTimeout(searchTimer);
   state.currentView = 'home';
   state.currentIndex = 0;
   state.searchKeyword = '';  //【修改】清空搜索词
@@ -467,7 +444,6 @@ function goHome() {
 }
   
 function goToOverview() {
-  clearTimeout(searchTimer);
   state.currentView = 'overview';
   state.selectedFilter = 'all';
   state.searchKeyword = '';  //【修改】清空搜索词
