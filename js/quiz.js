@@ -81,7 +81,7 @@ function startQuiz(mode = 'today') {
   }
 
   // 随机抽取 10 题
-  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(words);
   const selected = shuffled.slice(0, Math.min(10, shuffled.length));
 
   // 收集所有可选释义作为干扰项来源
@@ -543,7 +543,7 @@ function startSpell(mode) {
     return;
   }
 
-  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(words);
   state.spellWords = shuffled.slice(0, Math.min(10, shuffled.length));
   state.spellMode = mode;
   state.spellIndex = 0;
