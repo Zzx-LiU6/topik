@@ -277,6 +277,7 @@ function saveToStorage() {
     localStorage.setItem('topik_wrong_words', JSON.stringify(state.wrongWords));
   } catch (e) {
     console.warn('保存存储失败:', e);
+    showToast('⚠️ 进度保存失败，请检查浏览器存储空间或隐私设置', 3000);
   }
 }
 
