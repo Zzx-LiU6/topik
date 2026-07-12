@@ -59,7 +59,7 @@ async function renderWrongView() {
         <h1 class="text-xl font-medium text-coffee-600 mb-4">📝 错题集 (${wrongWordsList.length}题)</h1>
         <div class="flex gap-2 mb-4">
           <button onclick="startWrongReview()" class="px-4 py-2 bg-coffee-400 text-white rounded-xl text-sm">🔁 开始复习</button>
-          <button onclick="state.wrongWords=[];saveToStorageDebounced();goHome();" class="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-sm">🗑 清空</button>
+          <button onclick="state.wrongWords=[];saveToStorage();goHome();" class="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-sm">🗑 清空</button>
         </div>
         <div class="space-y-2">
           ${wrongWordsList.map(w => {
