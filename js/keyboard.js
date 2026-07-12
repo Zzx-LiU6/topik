@@ -39,8 +39,6 @@ function setupKeyboard() {
         e.preventDefault();
         handleAction('permanent');
         break;
-      case 'd':
-      case 'D':
       case 's':
       case 'S':
         e.preventDefault();
