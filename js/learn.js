@@ -227,7 +227,7 @@ function initializeLearnQueue() {
       queue.splice(state.currentIndex, 1);
   
       if (queue.length === 0) {
-        saveToStorage();
+        saveToStorageDebounced();
         showCompletionModal();
         return;
       }
@@ -253,7 +253,7 @@ function initializeLearnQueue() {
       queue.splice(state.currentIndex, 1);
   
       if (queue.length === 0) {
-        saveToStorage();
+        saveToStorageDebounced();
         showCompletionModal();
         return;
       }
@@ -299,7 +299,7 @@ function initializeLearnQueue() {
     } else {
       bookmarkedWords.push(kw);
     }
-    saveToStorage();
+    saveToStorageDebounced();
     renderCurrentView();
   }
   
@@ -340,4 +340,3 @@ function initializeLearnQueue() {
     state.targetWord = word;
     renderCurrentView();
   }
-  
