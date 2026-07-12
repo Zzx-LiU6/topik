@@ -42,7 +42,7 @@ async function renderWrongView() {
   
   if (wrongWordsList.length === 0) {
     state.wrongWords = [];
-    saveToStorageDebounced();
+    saveToStorage();
     await renderWrongView();
     return;
   }
@@ -92,7 +92,7 @@ function startWrongReview() {
   }
   if (wrongWordsList.length === 0) {
     state.wrongWords = [];
-    saveToStorageDebounced();
+    saveToStorage();
     goHome();
     return;
   }
