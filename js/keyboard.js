@@ -1,8 +1,20 @@
 // ========== 键盘支持 ==========
 function setupKeyboard() {
   document.addEventListener('keydown', async (e) => {
+    // 检测完成弹窗是否打开
+    const completionModal = document.getElementById('completion-modal');
+    if (completionModal && !completionModal.classList.contains('hidden')) {
+      // 弹窗打开时，只允许 Escape 关闭弹窗，其他按键全部忽略
+      if (e.key === 'Escape') {
+        dismissCompletionModal();
+        e.preventDefault();
+      }
+      return;
+    }
+
+    // 原有的视图检测
     if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks') return;
-  
+
     switch (e.key) {
       case ' ':
         e.preventDefault();
@@ -10,7 +22,7 @@ function setupKeyboard() {
         break;
       case 'Enter':
         e.preventDefault();
-            flipCard();
+        flipCard();
         break;
       case 'r':
       case 'R':
@@ -26,7 +38,7 @@ function setupKeyboard() {
       case 'P':
         e.preventDefault();
         handleAction('permanent');
-       break;
+        break;
       case 'd':
       case 'D':
       case 's':
