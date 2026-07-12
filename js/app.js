@@ -502,6 +502,21 @@ function resetCard() {
   if (card) card.classList.remove('is-flipped');
 }
 
+// ========== 键盘快捷键帮助 ==========
+function toggleKeyboardHelp() {
+  const modal = document.getElementById('keyboard-help-modal');
+  if (!modal) return;
+  modal.classList.toggle('hidden');
+  modal.classList.toggle('flex');
+}
+
+function closeKeyboardHelp() {
+  const modal = document.getElementById('keyboard-help-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
 // ========== 夜间模式 ==========
 function toggleDarkMode() {
   state.darkMode = !state.darkMode;
