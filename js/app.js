@@ -167,12 +167,12 @@ async function init() {
     }
     if (migrated.length > 0) {
       bookmarkedWords = migrated;
-      saveToStorage();
+      saveToStorageDebounced();
       console.log('收藏格式已迁移到 korean');
     } else {
       // 如果旧收藏全都找不到对应单词，清空收藏本
       bookmarkedWords = [];
-      saveToStorage();
+      saveToStorageDebounced();
     }
   }
 
