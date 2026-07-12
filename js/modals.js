@@ -94,6 +94,7 @@ function showCompletionModal() {
     if (window.confirm('确定要清空所有学习记录和收藏吗？此操作不可撤销。')) {
       wordProgress = {};
       bookmarkedWords = [];
+      state.wrongWords = [];
       state.currentSet = 1;
       state.currentSetKey = '1';
       state.currentIndex = 0;
