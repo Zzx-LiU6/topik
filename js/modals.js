@@ -34,7 +34,7 @@ function showCompletionModal() {
     const words = allVocabularySets[state.currentSetKey] || [];
     words.forEach(w => delete wordProgress[w.id]);
     state.currentIndex = 0;
-    saveToStorage();
+    saveToStorageDebounced();
     closeCompletionModal();
     startLearnNew();
   }
@@ -64,7 +64,7 @@ function showCompletionModal() {
     words.forEach(w => delete wordProgress[w.id]);
   
     state.currentIndex = 0;
-    saveToStorage();
+    saveToStorageDebounced();
     closeCompletionModal();
     startLearnNew();
   }
@@ -99,7 +99,7 @@ function showCompletionModal() {
       state.currentSetKey = '1';
       state.currentIndex = 0;
       state.currentQueue = [];
-      saveToStorage();
+      saveToStorageDebounced();
       goHome();
     }
   }
