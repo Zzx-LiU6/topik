@@ -112,5 +112,62 @@
     <script src="js/modals.js"></script>
     <script src="js/styles.js"></script>
     <script src="js/exports.js"></script>
+
+<!-- 键盘快捷键指示按钮 -->
+<button id="keyboard-help-btn" 
+        class="fixed bottom-24 right-4 z-50 w-11 h-11 rounded-full bg-coffee-400 hover:bg-coffee-500 text-white shadow-lg transition-all duration-200 hover:scale-110 flex items-center justify-center text-lg"
+        onclick="toggleKeyboardHelp()"
+        title="键盘快捷键">
+  ⌨️
+</button>
+
+<!-- 键盘快捷键指示弹窗 -->
+<div id="keyboard-help-modal" class="fixed inset-0 z-[60] hidden">
+  <div class="absolute inset-0 bg-coffee-600/30 backdrop-blur-sm" onclick="closeKeyboardHelp()"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md">
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 border border-cream-300 fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-medium text-coffee-600">⌨️ 键盘快捷键</h2>
+        <button onclick="closeKeyboardHelp()" class="text-coffee-400 hover:text-coffee-600 text-xl">✕</button>
+      </div>
+      <div class="space-y-2 text-sm text-coffee-600">
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">空格</kbd> 或 <kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">Enter</kbd></span>
+          <span>翻转卡片</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">R</kbd></span>
+          <span>再看一次（延后复习）</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">M</kbd></span>
+          <span>本轮记住</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">P</kbd></span>
+          <span>彻底掌握</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">D</kbd> 或 <kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">S</kbd></span>
+          <span>朗读单词</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">B</kbd></span>
+          <span>收藏 / 取消收藏</span>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-cream-200">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">←</kbd> <kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">→</kbd></span>
+          <span>收藏本翻页</span>
+        </div>
+        <div class="flex justify-between py-1.5">
+          <span><kbd class="px-2 py-0.5 bg-cream-200 rounded text-xs font-mono">Esc</kbd></span>
+          <span>返回首页</span>
+        </div>
+      </div>
+      <p class="text-xs text-coffee-400 mt-4 text-center">仅在学习/复习/收藏本页面生效</p>
+    </div>
+  </div>
+</div>
+
   </body>
 </html>
