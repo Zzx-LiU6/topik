@@ -255,10 +255,12 @@ function loadFromStorage() {
     const savedProgress = localStorage.getItem(STORAGE_KEYS.wordProgress);
     const savedSet = localStorage.getItem(STORAGE_KEYS.currentSet);
     const savedBookmarks = localStorage.getItem(STORAGE_KEYS.bookmarkedWords);
+    const savedWrong = localStorage.getItem('topik_wrong_words');
 
     if (savedProgress) wordProgress = JSON.parse(savedProgress) || {};
     if (savedSet) state.currentSet = parseInt(savedSet, 10) || 1;
     if (savedBookmarks) bookmarkedWords = JSON.parse(savedBookmarks) || [];
+    if (savedWrong) state.wrongWords = JSON.parse(savedWrong) || [];
   } catch (e) {
     console.warn('加载存储失败:', e);
   }
@@ -269,6 +271,7 @@ function saveToStorage() {
     localStorage.setItem(STORAGE_KEYS.wordProgress, JSON.stringify(wordProgress));
     localStorage.setItem(STORAGE_KEYS.currentSet, state.currentSet.toString());
     localStorage.setItem(STORAGE_KEYS.bookmarkedWords, JSON.stringify(bookmarkedWords));
+    localStorage.setItem('topik_wrong_words', JSON.stringify(state.wrongWords));
   } catch (e) {
     console.warn('保存存储失败:', e);
   }
@@ -279,6 +282,7 @@ function exportProgress() {
     wordProgress: wordProgress,
     currentSet: state.currentSet,
     bookmarkedWords: bookmarkedWords
+    wrongWords: state.wrongWords
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -302,6 +306,7 @@ function importProgress() {
       if (data.wordProgress) wordProgress = data.wordProgress;
       if (data.currentSet) state.currentSet = data.currentSet;
       if (data.bookmarkedWords) bookmarkedWords = data.bookmarkedWords;
+      if (data.wrongWords) state.wrongWords = data.wrongWords;
       saveToStorage();
       alert('进度已导入，页面将刷新。');
       location.reload();
