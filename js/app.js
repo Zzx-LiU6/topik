@@ -143,6 +143,8 @@ async function loadVocabularyData() {
 
 // ========== 程序初始化总入口 ==========
 async function init() {
+  const loading = document.getElementById('loading');
+  if (loading) loading.style.display = 'flex';
   await loadVocabularyData();
   loadFromStorage();
 
@@ -228,6 +230,7 @@ async function init() {
   setupElements();
   await renderCurrentView();
   setupKeyboard();
+  if (loading) loading.style.display = 'none';
 }
 
 function setupElements() {
@@ -266,6 +269,15 @@ function loadFromStorage() {
   }
 }
 
+let saveTimer = null;
+
+function saveToStorageDebounced() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveToStorage();
+  }, 300);
+}
+
 function saveToStorage() {
   try {
     localStorage.setItem(STORAGE_KEYS.wordProgress, JSON.stringify(wordProgress));
@@ -281,7 +293,7 @@ function exportProgress() {
   const data = {
     wordProgress: wordProgress,
     currentSet: state.currentSet,
-    bookmarkedWords: bookmarkedWords
+    bookmarkedWords: bookmarkedWords,
     wrongWords: state.wrongWords
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -426,6 +438,8 @@ async function renderCurrentView() {
 
 // ========== 加载失败提示 ==========
 function renderLoadError() {
+  const loading = document.getElementById('loading');
+  if (loading) loading.style.display = 'none';
   elements.app.innerHTML = `
     <div class="fade-in text-center py-12">
       <div class="text-5xl mb-4">📭</div>
