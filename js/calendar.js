@@ -28,7 +28,7 @@ function getWordsByDate(dateStr, type) {
   for (const [wordId, progress] of Object.entries(wordProgress)) {
     let match = false;
     if (type === 'new' && progress.firstLearnedDate === dateStr) match = true;
-    if (type === 'review' && progress.lastReviewDate === dateStr && progress.firstLearnedDate !== dateStr) match = true;
+    if (type === 'review' && progress.lastReviewDate === dateStr && progress.firstLearnedDate !== dateStr && progress.status === 'mastered') match = true;
     if (type === 'permanent' && progress.permanentDate === dateStr) match = true;
     if (match) {
       for (const setKey of sortedSetKeys) {
@@ -51,7 +51,11 @@ function getCalendarData(year, month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const newCount = Object.values(wordProgress).filter(p => p.firstLearnedDate === dateStr).length;
-    const reviewCount = Object.values(wordProgress).filter(p => p.lastReviewDate === dateStr && p.firstLearnedDate !== dateStr).length;
+    const reviewCount = Object.values(wordProgress).filter(p => 
+        p.lastReviewDate === dateStr && 
+        p.firstLearnedDate !== dateStr &&
+        p.status === 'mastered'
+    ).length;
     const permanentCount = Object.values(wordProgress).filter(p => p.permanentDate === dateStr).length;
     days.push({ day: d, dateStr, newCount, reviewCount, permanentCount, isToday: dateStr === today });
   }
