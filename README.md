@@ -2,7 +2,7 @@
 ---
 一个覆盖 TOPIK 5426 个核心词汇的韩语学习工具，支持学习、复习、测验、进度追踪。
 
-在线地址: https://danmeok.pages.dev/
+在线地址: https://danmeok.pages.dev
 
 ## 主要功能
 ---
