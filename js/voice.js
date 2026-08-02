@@ -1,92 +1,88 @@
-// ========== 语音朗读（三重保障） ==========
-async function speakWord(text) {
-    // 1. 尝试原生 TTS
-    if (hasKoreanVoice()) {
-      speakWithNative(text);
-      return;
+// ========== 语音朗读（极简移动版） ==========
+
+// 1. 预加载语音列表（移动端关键）
+let koreanVoice = null;
+let voicesReady = false;
+
+function initVoices() {
+  if (!('speechSynthesis' in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    koreanVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('Korean')) || null;
+    voicesReady = true;
+    return;
+  }
+  window.speechSynthesis.onvoiceschanged = function() {
+    const v = window.speechSynthesis.getVoices();
+    if (v.length > 0) {
+      koreanVoice = v.find(v2 => v2.lang.includes('ko') || v2.lang.includes('Korean')) || null;
+      voicesReady = true;
     }
-  
-    // 2. 尝试 Google TTS（通过 fetch 加载，更可靠）
-    const success = await speakWithGoogleTTS(text);
-    if (success) return;
-  
-    // 3. 都失败了，给出明确提示
-    showToast('当前浏览器不支持朗读', 3000);
+    window.speechSynthesis.onvoiceschanged = null;
+  };
+}
+// 页面加载时执行
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initVoices);
+} else {
+  initVoices();
+}
+
+// 2. 用户点击任意位置激活 speechSynthesis（移动端关键）
+document.addEventListener('click', function activate() {
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const dummy = new SpeechSynthesisUtterance(' ');
+      dummy.lang = 'ko-KR';
+      window.speechSynthesis.speak(dummy);
+      setTimeout(() => window.speechSynthesis.cancel(), 50);
+    } catch(e) {}
   }
+}, { once: true });
+
+// 3. 主朗读函数（不是 async，保证同步触发）
+function speakWord(text) {
+  if (!text) return;
+  console.log('🔊 朗读:', text);
   
-  // 检测是否有韩语语音
-  function hasKoreanVoice() {
-    if (!('speechSynthesis' in window)) return false;
-    const voices = window.speechSynthesis.getVoices();
-    return voices.some(v => v.lang.includes('ko') || v.lang.includes('Korean'));
+  // 取消之前朗读
+  window.speechSynthesis.cancel();
+
+  // 如果语音还没准备好，再尝试加载一次
+  if (!voicesReady || !koreanVoice) {
+    const fresh = window.speechSynthesis.getVoices();
+    if (fresh.length > 0) {
+      koreanVoice = fresh.find(v => v.lang.includes('ko') || v.lang.includes('Korean')) || null;
+      voicesReady = true;
+    }
   }
-  
-  // 原生 TTS 播放
-  function speakWithNative(text) {
-    window.speechSynthesis.cancel();
+
+  // 有韩语语音 → 原生 TTS（同步触发，手势有效）
+  if (koreanVoice) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ko-KR';
     utterance.rate = 0.8;
     utterance.pitch = 1;
-  
-    const voices = window.speechSynthesis.getVoices();
-    const koreanVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('Korean'));
-    if (koreanVoice) utterance.voice = koreanVoice;
-  
+    utterance.voice = koreanVoice;
     window.speechSynthesis.speak(utterance);
+    return;
   }
-  
-  // Google TTS 播放（返回 Promise<boolean>）
-  async function speakWithGoogleTTS(text) {
-    try {
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ko&client=tw-ob`;
-      const response = await fetch(url);
-      if (!response.ok) return false;
-  
-      const blob = await response.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      const audio = new Audio(audioUrl);
-  
-      // 等待播放完毕或失败
-      await new Promise((resolve, reject) => {
-        audio.onended = resolve;
-        audio.onerror = reject;
-        audio.play().catch(reject);
-      });
-  
-      return true;
-    } catch (e) {
-      console.warn('Google TTS 播放失败:', e);
-      return false;
-    }
-  }
-  
-  // Toast 提示（可自定义时长）
-  function showToast(msg, duration = 1000) {
-    const toast = document.createElement('div');
-    toast.textContent = msg;
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #6B5B45;
-      color: white;
-      padding: 10px 24px;
-      border-radius: 24px;
-      font-size: 14px;
-      z-index: 1000;
-      opacity: 0;
-      transition: opacity 0.3s;
-      text-align: center;
-      width: max-content;
-      max-width: 95vw;
-    `;
-    document.body.appendChild(toast);
-    requestAnimationFrame(() => (toast.style.opacity = '1'));
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
-  }
-  
+
+  // 没有韩语语音 → 尝试 Google TTS（不阻塞，不等待）
+  tryGoogleTTS(text);
+}
+
+// 4. Google TTS 备用（不等待，不阻塞）
+function tryGoogleTTS(text) {
+  try {
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ko&client=tw-ob`;
+    fetch(url)
+      .then(r => r.blob())
+      .then(blob => {
+        const audio = new Audio(URL.createObjectURL(blob));
+        audio.play().catch(() => {});
+      })
+      .catch(() => {});
+  } catch(e) {}
+}
