@@ -5,14 +5,17 @@ async function renderLearnView() {
   
     let queue = [];
     let total = TOTAL_WORDS_PER_SET;
-  
+
     if (isReview) {
-      queue = await getWordsToReviewToday();
-      // 关键修复：确保 queue 赋值给 state.currentQueue
-      state.currentQueue = queue;
-      state.reviewTotal = queue.length;
+      // 优先使用已存在的队列，避免覆盖
+      if (state.currentQueue && state.currentQueue.length > 0 && state.mode === 'review') {
+        queue = state.currentQueue;
+      } else {
+        queue = await getWordsToReviewToday();
+        state.currentQueue = queue;
+        state.reviewTotal = queue.length;
+      }
       total = queue.length || 1;
-      console.log('复习模式 - 队列长度:', queue.length);
     } else if (isBookmarks) {
       queue = await getBookmarkedWords();
       state.currentQueue = queue;
@@ -27,7 +30,6 @@ async function renderLearnView() {
       return;
     }
 
-    // 再次确保同步
     state.currentQueue = queue;
   
     const currentWord = queue[state.currentIndex];
@@ -35,10 +37,11 @@ async function renderLearnView() {
     // 进度计算
     let completed, percent, progressText;
     if (isReview) {
+      // 如果 reviewTotal 与当前队列长度不匹配，重置 reviewTotal 为队列长度
       if (state.reviewTotal === 0 || state.reviewTotal < total) {
         state.reviewTotal = total;
       }
-      completed = Math.max(0, state.reviewTotal - total);
+      completed = Math.max(0, state.reviewTotal - total); // 确保不为负
       percent = state.reviewTotal > 0 ? Math.round((completed / state.reviewTotal) * 100) : 0;
       progressText = `进度 ${completed}/${state.reviewTotal}`;
     } else if (isBookmarks) {
@@ -96,7 +99,7 @@ async function renderLearnView() {
               <!-- 正面 -->
               <div class="flashcard-front absolute inset-0 bg-white rounded-3xl shadow-lg flex flex-col items-center justify-center p-6 backface-hidden border border-cream-300 card-hover"
                    onclick="flipCard()">
-                <!-- 喇叭按钮 -->
+                <!-- 喇叭按钮 - 单独层级，不触发翻转 -->
                 <div class="speaker-wrapper absolute top-4 right-4 z-10">
                   <button class="p-2 rounded-full hover:bg-cream-100 transition-all duration-200 speaker-btn"
                           onclick="event.stopPropagation(); speakWord('${currentWord.korean}')"
@@ -197,30 +200,16 @@ function initializeLearnQueue() {
   }
   
   async function handleAction(action) {
-    console.log('🔘 handleAction 被调用，action:', action, '当前视图:', state.currentView, '模式:', state.mode);
-    
     if (state.mode === 'viewOnly') return;
 
+    const isReview = state.mode === 'review';
+    const isBookmarks = state.currentView === 'bookmarks';
+
+    // 无论何种模式，都直接使用已经设置好的 currentQueue
     const queue = state.currentQueue;
-    console.log('📊 当前队列长度:', queue.length, '当前索引:', state.currentIndex);
-
-    if (!queue || queue.length === 0) {
-      console.warn('⚠️ 队列为空，无法执行操作');
-      return;
-    }
-
-    if (state.currentIndex >= queue.length) {
-      console.warn('⚠️ 索引超出队列长度，重置为0');
-      state.currentIndex = 0;
-    }
 
     const currentWord = queue[state.currentIndex];
-    if (!currentWord) {
-      console.warn('⚠️ 当前单词为空');
-      return;
-    }
-
-    console.log('📝 当前单词:', currentWord.korean);
+    if (!currentWord) return;
 
     const today = getToday();
   
@@ -250,6 +239,7 @@ function initializeLearnQueue() {
         return;
       }
   
+      // 如果是错题复习模式，掌握后从错题集移除
       if (state.currentView === 'wrong' && state.wrongViewMode === 'learn') {
         state.wrongWords = state.wrongWords.filter(kw => kw !== currentWord.korean);
       }
@@ -275,6 +265,7 @@ function initializeLearnQueue() {
         return;
       }
   
+      // 如果是错题复习模式，掌握后从错题集移除
       if (state.currentView === 'wrong' && state.wrongViewMode === 'learn') {
         state.wrongWords = state.wrongWords.filter(kw => kw !== currentWord.korean);
       }
@@ -283,15 +274,12 @@ function initializeLearnQueue() {
         state.currentIndex = 0;
       }
     } else if (action === 'review') {
-      console.log('🔄 执行「再看一次」操作');
       if (!wordProgress[currentWord.id]) {
         wordProgress[currentWord.id] = {};
       }
       wordProgress[currentWord.id].lastReviewDate = today;
-      // 关键操作：把当前单词移到队尾
-      const word = queue.splice(state.currentIndex, 1)[0];
-      queue.push(word);
-      console.log('✅ 单词已移到队尾，剩余队列长度:', queue.length);
+      queue.splice(state.currentIndex, 1);
+      queue.push(currentWord);
     }
   
     saveToStorageDebounced();
@@ -300,6 +288,7 @@ function initializeLearnQueue() {
   }
   
   function toggleBookmark(wordId) {
+    // 遍历所有套装，查找 id 匹配的单词对象
     let word = null;
     for (const setKey of sortedSetKeys) {
       const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
@@ -308,9 +297,9 @@ function initializeLearnQueue() {
         break;
       }
     }
-    if (!word) return;
+    if (!word) return; // 没找到对应的单词，不执行收藏操作
   
-    const kw = word.korean;
+    const kw = word.korean; // 使用韩文单词作为收藏标识
     const index = bookmarkedWords.indexOf(kw);
     if (index > -1) {
       bookmarkedWords.splice(index, 1);
@@ -334,7 +323,9 @@ function initializeLearnQueue() {
     renderCurrentView();
   }, 500);
   
+  // 总览点击单词：打开独立详情页，不进入背诵、不会弹出完成弹窗
   async function startLearnWord(wordId) {
+    // 遍历所有套装，找到匹配的单词
     let word = null;
     for (const setKey of sortedSetKeys) {
       const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
@@ -347,6 +338,7 @@ function initializeLearnQueue() {
       goHome();
       return;
     }
+    // 切换到单词详情视图
     state.currentView = 'wordDetail';
     state.targetWord = word;
     renderCurrentView();
