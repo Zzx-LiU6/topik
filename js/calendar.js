@@ -35,7 +35,8 @@ function getWordsByDate(dateStr, type) {
   for (const [wordId, progress] of Object.entries(wordProgress)) {
     let match = false;
     if (type === 'new' && progress.firstLearnedDate === dateStr && progress.status !== 'permanent') match = true;
-    if (type === 'review' && progress.nextReviewDate === dateStr && progress.status === 'mastered') match = true;
+    // 修改：统计今天已经复习过的单词（lastReviewDate === dateStr）
+    if (type === 'review' && progress.lastReviewDate === dateStr && progress.status === 'mastered') match = true;
     if (type === 'permanent' && progress.permanentDate === dateStr) match = true;
     if (match) {
       for (const setKey of sortedSetKeys) {
@@ -49,7 +50,7 @@ function getWordsByDate(dateStr, type) {
   }
   return words;
 }
-  
+
 function getCalendarData(year, month) {
   const firstDay = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -58,9 +59,9 @@ function getCalendarData(year, month) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const newCount = Object.values(wordProgress).filter(p => p.firstLearnedDate === dateStr && p.status !== 'permanent').length;
-    // 只统计今天及之前日期的复习数量
+    // 修改：统计今天已经复习过的单词
     const isPastOrToday = dateStr <= today;
-    const reviewCount = isPastOrToday ? Object.values(wordProgress).filter(p => p.nextReviewDate === dateStr && p.status === 'mastered').length : 0;
+    const reviewCount = isPastOrToday ? Object.values(wordProgress).filter(p => p.lastReviewDate === dateStr && p.status === 'mastered').length : 0;
     const permanentCount = Object.values(wordProgress).filter(p => p.permanentDate === dateStr).length;
     days.push({ day: d, dateStr, newCount, reviewCount, permanentCount, isToday: dateStr === today });
   }
