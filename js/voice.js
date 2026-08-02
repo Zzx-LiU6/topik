@@ -1,43 +1,71 @@
-// ========== 语音朗读（Chrome 手势版） ==========
+// ========== 语音朗读 ==========
 
+// 判断是否为手机端
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+// 主函数：PC 优先原生 TTS，手机优先 Google TTS
 window.speakWord = function(text) {
   if (!text) return;
-  
-  // Via 等不支持的浏览器会走这里
+
+  // 如果浏览器不支持语音，直接尝试 Google TTS
   if (!('speechSynthesis' in window)) {
-    alert('浏览器不支持语音朗读');
+    speakWithGoogleTTS(text);
     return;
   }
-  
-  // 取消所有正在播放的语音
+
+  // ===== PC 端：原生 TTS =====
+  if (!isMobile()) {
+    speakWithNativeTTS(text);
+    return;
+  }
+
+  // ===== 手机端：优先 Google TTS =====
+  speakWithGoogleTTS(text);
+};
+
+// ===== 原生 TTS（PC 端） =====
+function speakWithNativeTTS(text) {
   window.speechSynthesis.cancel();
-  
-  // 创建语音对象（同步执行）
-  var u = new SpeechSynthesisUtterance(text);
-  u.lang = 'ko-KR';
-  u.rate = 0.9;
-  u.pitch = 1;
-  
-  // 尝试找韩语语音（同步执行）
+  var utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'ko-KR';
+  utterance.rate = 0.9;
+
   var voices = window.speechSynthesis.getVoices();
   for (var i = 0; i < voices.length; i++) {
     if (voices[i].lang.indexOf('ko') !== -1) {
-      u.voice = voices[i];
+      utterance.voice = voices[i];
       break;
     }
   }
-  
-  // 直接播放（同步执行）
-  window.speechSynthesis.speak(u);
-  console.log('🔊 已触发朗读:', text);
-};
-
-// 预加载语音（页面加载时执行）
-if ('speechSynthesis' in window) {
-  // 空触发一次，让浏览器初始化语音引擎
-  var dummy = new SpeechSynthesisUtterance('');
-  window.speechSynthesis.speak(dummy);
-  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
 }
 
-console.log('✅ voice.js 已加载（Chrome 手势版）');
+// ===== Google TTS（手机端，通过 Audio 播放） =====
+function speakWithGoogleTTS(text) {
+  var url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encodeURIComponent(text) + '&tl=ko&client=tw-ob';
+
+  fetch(url)
+    .then(function(response) {
+      if (!response.ok) throw new Error('Google TTS 请求失败');
+      return response.blob();
+    })
+    .then(function(blob) {
+      var audioUrl = URL.createObjectURL(blob);
+      var audio = new Audio(audioUrl);
+      audio.play();
+    })
+    .catch(function() {
+      // 如果 Google TTS 失败，尝试原生 TTS 作为保底
+      if ('speechSynthesis' in window) {
+        speakWithNativeTTS(text);
+      }
+    });
+}
+
+// 暴露到全局
+window.speakWithGoogleTTS = speakWithGoogleTTS;
+window.speakWithNativeTTS = speakWithNativeTTS;
+
+console.log('✅ voice.js 已加载（PC=原生TTS / 手机=GoogleTTS）');
