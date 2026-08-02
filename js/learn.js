@@ -26,20 +26,24 @@ async function renderLearnView() {
   
     const currentWord = queue[state.currentIndex];
   
-    //【修改】修复进度百分比计算 - 三种场景独立计算
-    let completed, percent;
+    // 进度计算
+    let completed, percent, progressText;
     if (isReview) {
-      // 复习模式：用当前位置作为进度
-    completed = state.reviewTotal - total;  // 初始总数 - 当前剩余 = 已完成
-    percent = state.reviewTotal > 0 ? Math.round((completed / state.reviewTotal) * 100) : 0;
+      // 如果 reviewTotal 与当前队列长度不匹配，重置 reviewTotal 为队列长度
+      if (state.reviewTotal === 0 || state.reviewTotal < total) {
+        state.reviewTotal = total;
+      }
+      completed = Math.max(0, state.reviewTotal - total); // 确保不为负
+      percent = state.reviewTotal > 0 ? Math.round((completed / state.reviewTotal) * 100) : 0;
+      progressText = `进度 ${completed}/${state.reviewTotal}`;
     } else if (isBookmarks) {
-      //【修改】收藏本模式：仅用currentIndex作为分子，total为队列长度
       completed = state.currentIndex;
       percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+      progressText = `进度 ${completed}/${total}`;
     } else {
-      // 新词模式：用套装已完成数
       completed = await getCompletedCountForSet(state.currentSetKey);
       percent = Math.round((completed / total) * 100);
+      progressText = `学习进度 ${completed} 个 / 共 ${total} 个`;
     }
   
     const isBookmarked = bookmarkedWords.includes(currentWord.korean);
