@@ -273,11 +273,9 @@ function initializeLearnQueue() {
       if (state.currentIndex >= queue.length) {
         state.currentIndex = 0;
       }
+      
     } else if (action === 'review') {
-      if (!wordProgress[currentWord.id]) {
-        wordProgress[currentWord.id] = {};
-      }
-      wordProgress[currentWord.id].lastReviewDate = today;
+      // 再看一次：只把单词移到队尾，不更新任何复习日期
       queue.splice(state.currentIndex, 1);
       queue.push(currentWord);
     }
