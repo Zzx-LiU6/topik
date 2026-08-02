@@ -187,22 +187,16 @@ function initializeLearnQueue() {
   
   async function handleAction(action) {
     if (state.mode === 'viewOnly') return;
-  
+
     const isReview = state.mode === 'review';
     const isBookmarks = state.currentView === 'bookmarks';
-    let queue;
-  
-    if (isBookmarks) {
-      queue = state.currentQueue;
-    } else if (isReview) {
-      queue = state.currentQueue;
-    } else {
-      queue = state.currentQueue;
-    }
-  
+
+    // 无论何种模式，都直接使用已经设置好的 currentQueue
+    const queue = state.currentQueue;
+
     const currentWord = queue[state.currentIndex];
     if (!currentWord) return;
-  
+
     const today = getToday();
   
     if (action === 'mastered') {
