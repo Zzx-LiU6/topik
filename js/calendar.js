@@ -1,10 +1,11 @@
 // ========== 学习日历 ==========
+
 function startCalendar() {
   state.currentView = 'calendar';
   state.selectedDate = null;
   renderCurrentView();
 }
-  
+
 function changeCalendarMonth(delta) {
   state.calendarMonth += delta;
   if (state.calendarMonth > 12) {
@@ -17,30 +18,43 @@ function changeCalendarMonth(delta) {
   state.selectedDate = null;
   renderCurrentView();
 }
-  
+
 function selectCalendarDate(dateStr) {
   state.selectedDate = dateStr;
   renderCurrentView();
 }
-  
+
+// 获取某一天的单词列表
 function getWordsByDate(dateStr, type) {
-  const today = getToday();
-  const words = [];
-  
-  // 如果是复习类型且日期在未来，直接返回空数组
+  var today = getToday();
+  var words = [];
+
+  // 未来的日期不显示复习数据
   if (type === 'review' && dateStr > today) {
     return words;
   }
-  
-  for (const [wordId, progress] of Object.entries(wordProgress)) {
-    let match = false;
-    if (type === 'new' && progress.firstLearnedDate === dateStr && progress.status !== 'permanent') match = true;
-    // 修改：统计今天已经复习过的单词（lastReviewDate === dateStr）
-    if (type === 'review' && progress.lastReviewDate === dateStr && progress.status === 'mastered') match = true;
-    if (type === 'permanent' && progress.permanentDate === dateStr) match = true;
+
+  for (var wordId in wordProgress) {
+    var progress = wordProgress[wordId];
+    var match = false;
+
+    // 今日新学：首次学习日期 = dateStr，且状态不是永久掌握
+    if (type === 'new' && progress.firstLearnedDate === dateStr && progress.status !== 'permanent') {
+      match = true;
+    }
+    // 今日复习：今天复习过的（lastReviewDate = dateStr），且状态是 mastered，且不是今天首次学习的
+    if (type === 'review' && progress.lastReviewDate === dateStr && progress.status === 'mastered' && progress.firstLearnedDate !== dateStr) {
+      match = true;
+    }
+    // 彻底掌握：永久掌握日期 = dateStr
+    if (type === 'permanent' && progress.permanentDate === dateStr) {
+      match = true;
+    }
+
     if (match) {
-      for (const setKey of sortedSetKeys) {
-        const w = allVocabularySets[setKey]?.find(w => w.id === wordId);
+      for (var i = 0; i < sortedSetKeys.length; i++) {
+        var setKey = sortedSetKeys[i];
+        var w = allVocabularySets[setKey]?.find(function(w) { return w.id === wordId; });
         if (w) {
           words.push(w);
           break;
@@ -51,62 +65,94 @@ function getWordsByDate(dateStr, type) {
   return words;
 }
 
+// 获取日历数据
 function getCalendarData(year, month) {
-  const firstDay = new Date(year, month - 1, 1).getDay();
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const today = getToday();
-  const days = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const newCount = Object.values(wordProgress).filter(p => p.firstLearnedDate === dateStr && p.status !== 'permanent').length;
-    // 修改：统计今天已经复习过的单词
-    const isPastOrToday = dateStr <= today;
-    const reviewCount = isPastOrToday ? Object.values(wordProgress).filter(p => p.lastReviewDate === dateStr && p.status === 'mastered').length : 0;
-    const permanentCount = Object.values(wordProgress).filter(p => p.permanentDate === dateStr).length;
-    days.push({ day: d, dateStr, newCount, reviewCount, permanentCount, isToday: dateStr === today });
+  var firstDay = new Date(year, month - 1, 1).getDay();
+  var daysInMonth = new Date(year, month, 0).getDate();
+  var today = getToday();
+  var days = [];
+
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateStr = year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var isPastOrToday = dateStr <= today;
+
+    var newCount = 0;
+    var reviewCount = 0;
+    var permanentCount = 0;
+
+    for (var wordId in wordProgress) {
+      var p = wordProgress[wordId];
+
+      // 今日新学：首次学习日期 = dateStr，且状态不是永久掌握
+      if (p.firstLearnedDate === dateStr && p.status !== 'permanent') {
+        newCount++;
+      }
+      // 今日复习：今天复习过的，且状态是 mastered，且不是今天首次学习的
+      if (isPastOrToday && p.lastReviewDate === dateStr && p.status === 'mastered' && p.firstLearnedDate !== dateStr) {
+        reviewCount++;
+      }
+      // 彻底掌握：永久掌握日期 = dateStr
+      if (p.permanentDate === dateStr) {
+        permanentCount++;
+      }
+    }
+
+    days.push({
+      day: d,
+      dateStr: dateStr,
+      newCount: newCount,
+      reviewCount: reviewCount,
+      permanentCount: permanentCount,
+      isToday: dateStr === today
+    });
   }
-  return { firstDay, days };
+
+  return { firstDay: firstDay, days: days };
 }
-  
+
+// 渲染日历
 async function renderCalendarView() {
-  const year = state.calendarYear;
-  const month = state.calendarMonth;
-  const { firstDay, days } = getCalendarData(year, month);
-  
-  let detailHTML = '';
+  var year = state.calendarYear;
+  var month = state.calendarMonth;
+  var data = getCalendarData(year, month);
+  var firstDay = data.firstDay;
+  var days = data.days;
+
+  var detailHTML = '';
   if (state.selectedDate) {
-    const newWords = getWordsByDate(state.selectedDate, 'new');
-    const reviewWords = getWordsByDate(state.selectedDate, 'review');
-    const permanentWords = getWordsByDate(state.selectedDate, 'permanent');
+    var newWords = getWordsByDate(state.selectedDate, 'new');
+    var reviewWords = getWordsByDate(state.selectedDate, 'review');
+    var permanentWords = getWordsByDate(state.selectedDate, 'permanent');
+
     detailHTML = `
       <div class="bg-white rounded-2xl p-4 mt-4 space-y-3">
         ${newWords.length > 0 ? `
         <div>
           <h4 class="text-sm font-medium text-coffee-600 mb-2">📖 今日新学 (${newWords.length})</h4>
           <div class="flex flex-wrap gap-2">
-            ${newWords.map(w => `<span class="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">${w.korean}</span>`).join('')}
+            ${newWords.map(function(w) { return '<span class="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">' + w.korean + '</span>'; }).join('')}
           </div>
         </div>` : ''}
         ${reviewWords.length > 0 ? `
         <div>
           <h4 class="text-sm font-medium text-coffee-600 mb-2">🔁 今日复习 (${reviewWords.length})</h4>
           <div class="flex flex-wrap gap-2">
-            ${reviewWords.map(w => `<span class="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">${w.korean}</span>`).join('')}
+            ${reviewWords.map(function(w) { return '<span class="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">' + w.korean + '</span>'; }).join('')}
           </div>
         </div>` : ''}
         ${permanentWords.length > 0 ? `
         <div>
           <h4 class="text-sm font-medium text-coffee-600 mb-2">🏆 彻底掌握 (${permanentWords.length})</h4>
           <div class="flex flex-wrap gap-2">
-            ${permanentWords.map(w => `<span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">${w.korean}</span>`).join('')}
+            ${permanentWords.map(function(w) { return '<span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">' + w.korean + '</span>'; }).join('')}
           </div>
         </div>` : ''}
         ${newWords.length === 0 && reviewWords.length === 0 && permanentWords.length === 0 ? '<p class="text-sm text-coffee-400 text-center">当天没有学习记录</p>' : ''}
       </div>
     `;
   }
-  
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+
+  var weekDays = ['日', '一', '二', '三', '四', '五', '六'];
   elements.app.innerHTML = `
     <div>
       <header class="mb-6">
@@ -129,20 +175,20 @@ async function renderCalendarView() {
 
       <div class="bg-white rounded-3xl p-4 shadow-md border border-cream-300">
         <div class="grid grid-cols-7 gap-1 text-center text-sm text-coffee-400 mb-2">
-          ${weekDays.map(d => `<div>${d}</div>`).join('')}
+          ${weekDays.map(function(d) { return '<div>' + d + '</div>'; }).join('')}
         </div>
         <div class="grid grid-cols-7 gap-1">
-          ${Array.from({ length: firstDay }).map(() => '<div></div>').join('')}
-          ${days.map(d => `
-            <div class="p-1 cursor-pointer rounded-lg text-center ${d.isToday ? 'bg-cream-200' : 'hover:bg-cream-100'} ${state.selectedDate === d.dateStr ? 'ring-2 ring-coffee-400' : ''}" onclick="selectCalendarDate('${d.dateStr}')">
-              <div class="text-sm font-medium text-coffee-600">${d.day}</div>
-              <div class="flex justify-center gap-1 mt-0.5">
-                ${d.newCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>' : ''}
-                ${d.reviewCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' : ''}
-                ${d.permanentCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>' : ''}
-              </div>
-            </div>
-          `).join('')}
+          ${Array.from({ length: firstDay }).map(function() { return '<div></div>'; }).join('')}
+          ${days.map(function(d) {
+            return '<div class="p-1 cursor-pointer rounded-lg text-center ' + (d.isToday ? 'bg-cream-200' : 'hover:bg-cream-100') + ' ' + (state.selectedDate === d.dateStr ? 'ring-2 ring-coffee-400' : '') + '" onclick="selectCalendarDate(\'' + d.dateStr + '\')">' +
+              '<div class="text-sm font-medium text-coffee-600">' + d.day + '</div>' +
+              '<div class="flex justify-center gap-1 mt-0.5">' +
+                (d.newCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>' : '') +
+                (d.reviewCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>' : '') +
+                (d.permanentCount > 0 ? '<span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('')}
         </div>
       </div>
 
