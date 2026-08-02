@@ -28,8 +28,8 @@ async function renderLearnView() {
     let completed, percent;
     if (isReview) {
       // 复习模式：用当前位置作为进度
-      completed = state.currentIndex;
-      percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    completed = state.reviewTotal - total;  // 初始总数 - 当前剩余 = 已完成
+    percent = state.reviewTotal > 0 ? Math.round((completed / state.reviewTotal) * 100) : 0;
     } else if (isBookmarks) {
       //【修改】收藏本模式：仅用currentIndex作为分子，total为队列长度
       completed = state.currentIndex;
@@ -70,8 +70,7 @@ async function renderLearnView() {
             <div class="h-full bg-gradient-to-r from-coffee-400 to-coffee-500 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
           </div>
           <p class="text-center text-sm text-coffee-400 mt-2">
-            ${isReview || isBookmarks ? `进度 ${state.currentIndex + 1}/${total}` : `学习进度 ${completed} 个 / 共 ${total} 个`}
-          </p>
+            ${isReview ? `进度 ${completed}/${state.reviewTotal}` : (isBookmarks ? `进度 ${state.currentIndex + 1}/${total}` : `学习进度 ${completed} 个 / 共 ${total} 个`)}
         </div>
   ` : ''}
   ${isBookmarks ? `
@@ -196,7 +195,7 @@ function initializeLearnQueue() {
     if (isBookmarks) {
       queue = state.currentQueue;
     } else if (isReview) {
-      queue = await getWordsToReviewToday();
+      queue = state.currentQueue;
     } else {
       queue = state.currentQueue;
     }
