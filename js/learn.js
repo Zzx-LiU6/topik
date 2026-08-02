@@ -8,9 +8,12 @@ async function renderLearnView() {
   
     if (isReview) {
       queue = await getWordsToReviewToday();
+      state.currentQueue = queue;
+      state.reviewTotal = queue.length;
       total = queue.length || 1;
     } else if (isBookmarks) {
       queue = await getBookmarkedWords();
+      state.currentQueue = queue;
       total = queue.length || 1;
     } else {
       queue = state.currentQueue.length > 0 ? state.currentQueue : initializeLearnQueue();
