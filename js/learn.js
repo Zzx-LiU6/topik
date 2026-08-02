@@ -16,11 +16,13 @@ async function renderLearnView() {
       queue = state.currentQueue.length > 0 ? state.currentQueue : initializeLearnQueue();
       total = allVocabularySets[state.currentSetKey]?.length || TOTAL_WORDS_PER_SET;
     }
-  
+    
     if (queue.length === 0 || state.currentIndex >= queue.length) {
       showCompletionModal();
       return;
     }
+
+    state.currentQueue = queue;
   
     const currentWord = queue[state.currentIndex];
   
