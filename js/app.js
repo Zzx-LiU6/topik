@@ -21,6 +21,7 @@ let state = {
   currentSetKey: '1',
   currentIndex: 0,
   currentQueue: [],
+  reviewTotal: 0,
   mode: 'new',
   selectedFilter: 'all',
   searchKeyword: '',
@@ -488,6 +489,7 @@ async function startReview() {
   state.currentView = 'review';
   state.currentQueue = reviewWords;
   state.currentIndex = 0;
+  state.reviewTotal = reviewWords.length;
   renderCurrentView();
 }
   
