@@ -1,4 +1,4 @@
-// ========== 语音朗读（最终稳定版） ==========
+// ========== 语音朗读（强制刷新版） ==========
 
 var isSpeaking = false;
 var isNativeFailed = false;
@@ -8,16 +8,6 @@ var speakTimer = null;
 var currentGoogleAudio = null;
 var toastTimer = null;
 var lastToastMsg = '';
-
-function getKoreanVoice() {
-  var voices = window.speechSynthesis.getVoices();
-  for (var i = 0; i < voices.length; i++) {
-    if (voices[i].lang && voices[i].lang.indexOf('ko') !== -1) {
-      return voices[i];
-    }
-  }
-  return null;
-}
 
 function showToast(msg, duration) {
   duration = duration || 1500;
@@ -40,6 +30,18 @@ function showToast(msg, duration) {
     }, 400);
     toastTimer = null;
   }, duration);
+}
+
+// 【关键】直接获取韩语语音，不依赖任何缓存
+function getKoreanVoice() {
+  if (!window.speechSynthesis) return null;
+  var voices = window.speechSynthesis.getVoices();
+  for (var i = 0; i < voices.length; i++) {
+    if (voices[i].lang && voices[i].lang.indexOf('ko') !== -1) {
+      return voices[i];
+    }
+  }
+  return null;
 }
 
 function stopGoogleTTS() {
@@ -81,7 +83,7 @@ function speakWithGoogleTTS(text) {
 
 function speakWithNative(text, koVoice) {
   stopGoogleTTS();
-  if (!isSpeaking) window.speechSynthesis.cancel();
+  window.speechSynthesis.cancel();
   var utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'ko-KR';
   utterance.rate = 0.9;
@@ -107,39 +109,40 @@ window.speakWord = function(text, isUserClick) {
     return;
   }
   if (!window.speechSynthesis) {
-    alert('您的浏览器不支持语音朗读功能，请使用 Chrome 等现代浏览器。');
+    alert('您的浏览器不支持语音朗读功能');
     return;
   }
 
-  // 防抖：清空旧定时器，立即执行，锁 500ms
+  // 防抖
   if (speakTimer) { clearTimeout(speakTimer); speakTimer = null; }
   if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking = false; }
   if (isGooglePlaying) { stopGoogleTTS(); }
 
-  // 【关键修复】每次点击都重置失败标记，允许重新尝试原生 TTS
-  isNativeFailed = false;
-
-  // 第一步：立即尝试获取韩语语音
+  // 【核心】每次点击都强制从浏览器获取最新韩语语音
   var koVoice = getKoreanVoice();
+
   if (koVoice) {
+    // 有韩语语音 → 原生 TTS
+    isNativeFailed = false;
     speakWithNative(text, koVoice);
     speakTimer = setTimeout(function() { speakTimer = null; }, 500);
     return;
   }
 
-  // 第二步：没有立即获取到，等待 300ms 再试一次（移动端语音列表加载慢）
+  // 没有韩语语音 → 先尝试唤醒，再试一次
   showToast('⏳ 准备语音...');
   setTimeout(function() {
     var koVoice2 = getKoreanVoice();
     if (koVoice2) {
+      isNativeFailed = false;
       speakWithNative(text, koVoice2);
       speakTimer = setTimeout(function() { speakTimer = null; }, 500);
     } else {
-      // 还是没有韩语语音，走 Google TTS
+      // 真的没有韩语语音 → Google TTS
       speakWithGoogleTTS(text);
       speakTimer = setTimeout(function() { speakTimer = null; }, 500);
     }
   }, 300);
 };
 
-console.log('✅ voice.js 已加载（最终稳定版）');
+console.log('✅ voice.js 已加载（强制刷新版）');
