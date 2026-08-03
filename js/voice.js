@@ -1,43 +1,53 @@
-// ========== 语音朗读（三重保障） ==========
+// ========== 语音朗读（三重保障 + 重试版） ==========
+
+// 新增：获取韩语语音（支持重试）
+function getKoreanVoiceWithRetry() {
+  var voices = window.speechSynthesis.getVoices();
+  for (var i = 0; i < voices.length; i++) {
+    if (voices[i].lang && voices[i].lang.indexOf('ko') !== -1) {
+      return voices[i];
+    }
+  }
+  return null;
+}
+
 async function speakWord(text) {
-    // 1. 尝试原生 TTS
-    if (hasKoreanVoice()) {
-      speakWithNative(text);
+    // 1. 先尝试获取韩语语音
+    var koVoice = getKoreanVoiceWithRetry();
+
+    // 如果第一次没获取到，等待 300ms 重试（移动端语音列表加载慢）
+    if (!koVoice) {
+      await new Promise(function(resolve) { setTimeout(resolve, 300); });
+      koVoice = getKoreanVoiceWithRetry();
+    }
+
+    // 1. 尝试原生 TTS（如果有韩语语音）
+    if (koVoice) {
+      speakWithNative(text, koVoice);
       return;
     }
-  
+
     // 2. 尝试 Google TTS（通过 fetch 加载，更可靠）
-    const success = await speakWithGoogleTTS(text);
+    var success = await speakWithGoogleTTS(text);
     if (success) return;
-  
+
     // 3. 都失败了，给出明确提示
     showToast('当前浏览器不支持朗读', 3000);
-  }
-  
-  // 检测是否有韩语语音
-  function hasKoreanVoice() {
-    if (!('speechSynthesis' in window)) return false;
-    const voices = window.speechSynthesis.getVoices();
-    return voices.some(v => v.lang.includes('ko') || v.lang.includes('Korean'));
-  }
-  
-  // 原生 TTS 播放
-  function speakWithNative(text) {
+}
+
+// 原生 TTS 播放（支持传入语音对象）
+function speakWithNative(text, koVoice) {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    var utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ko-KR';
     utterance.rate = 0.8;
     utterance.pitch = 1;
-  
-    const voices = window.speechSynthesis.getVoices();
-    const koreanVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('Korean'));
-    if (koreanVoice) utterance.voice = koreanVoice;
-  
+    if (koVoice) utterance.voice = koVoice;
     window.speechSynthesis.speak(utterance);
-  }
-  
-  // Google TTS 播放（返回 Promise<boolean>）
-  async function speakWithGoogleTTS(text) {
+}
+
+// Google TTS 播放（保持不变）
+async function speakWithGoogleTTS(text) {
     try {
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=ko&client=tw-ob`;
       const response = await fetch(url);
@@ -47,7 +57,6 @@ async function speakWord(text) {
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
   
-      // 等待播放完毕或失败
       await new Promise((resolve, reject) => {
         audio.onended = resolve;
         audio.onerror = reject;
@@ -59,10 +68,10 @@ async function speakWord(text) {
       console.warn('Google TTS 播放失败:', e);
       return false;
     }
-  }
-  
-  // Toast 提示（可自定义时长）
-  function showToast(msg, duration = 1000) {
+}
+
+// Toast 提示（保持不变）
+function showToast(msg, duration = 1000) {
     const toast = document.createElement('div');
     toast.textContent = msg;
     toast.style.cssText = `
@@ -88,5 +97,4 @@ async function speakWord(text) {
       toast.style.opacity = '0';
       setTimeout(() => toast.remove(), 300);
     }, duration);
-  }
-  
+}
