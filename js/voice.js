@@ -1,4 +1,4 @@
-// ========== 语音朗读（移动端最终版） ==========
+// ========== 语音朗读（最终稳定版） ==========
 
 var isSpeaking = false;
 var isNativeFailed = false;
@@ -9,7 +9,6 @@ var currentGoogleAudio = null;
 var toastTimer = null;
 var lastToastMsg = '';
 
-// 直接获取韩语语音（不依赖缓存）
 function getKoreanVoice() {
   var voices = window.speechSynthesis.getVoices();
   for (var i = 0; i < voices.length; i++) {
@@ -117,11 +116,12 @@ window.speakWord = function(text, isUserClick) {
   if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking = false; }
   if (isGooglePlaying) { stopGoogleTTS(); }
 
+  // 【关键修复】每次点击都重置失败标记，允许重新尝试原生 TTS
+  isNativeFailed = false;
+
   // 第一步：立即尝试获取韩语语音
   var koVoice = getKoreanVoice();
   if (koVoice) {
-    // 有韩语语音，直接原生 TTS
-    isNativeFailed = false; // 重置失败标记，允许重新尝试
     speakWithNative(text, koVoice);
     speakTimer = setTimeout(function() { speakTimer = null; }, 500);
     return;
@@ -132,7 +132,6 @@ window.speakWord = function(text, isUserClick) {
   setTimeout(function() {
     var koVoice2 = getKoreanVoice();
     if (koVoice2) {
-      isNativeFailed = false;
       speakWithNative(text, koVoice2);
       speakTimer = setTimeout(function() { speakTimer = null; }, 500);
     } else {
@@ -143,4 +142,4 @@ window.speakWord = function(text, isUserClick) {
   }, 300);
 };
 
-console.log('✅ voice.js 已加载（移动端最终版）');
+console.log('✅ voice.js 已加载（最终稳定版）');
