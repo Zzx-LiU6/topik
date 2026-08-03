@@ -102,7 +102,7 @@ async function renderLearnView() {
                 <!-- 喇叭按钮 - 单独层级，不触发翻转 -->
                 <div class="speaker-wrapper absolute top-4 right-4 z-10">
                   <button class="p-2 rounded-full hover:bg-cream-100 transition-all duration-200 speaker-btn"
-                          onclick="event.stopPropagation(); window.speakWord('${currentWord.korean}')"
+                          onclick="event.stopPropagation(); window.speakWord('${currentWord.korean}', true)"
                           aria-label="朗读单词">
                     <svg class="w-6 h-6 text-coffee-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6 10v4a2 2 0 002 2h2l3 3V8l-3 3H8a2 2 0 00-2 2z"/>
