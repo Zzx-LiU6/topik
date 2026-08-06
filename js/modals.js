@@ -28,8 +28,9 @@ function showCompletionModal() {
   
   function dismissCompletionModal() {
       closeCompletionModal();
+      state.wrongInitialTotal = 0;  // 重置初始总数
       if (state.currentView === 'wrong') {
-          goToWrongWords();  // 回到错题列表
+          goToWrongWords();
       } else {
           goHome();
       }
