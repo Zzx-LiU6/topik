@@ -106,6 +106,7 @@ function startWrongReview() {
   state.currentView = 'wrong';
   state.currentQueue = wrongWordsList;
   state.currentIndex = 0;
-  // 不再设置 state.mode，由 renderLearnView 根据 currentView 识别
+  // ⭐ 新增：记录初始总题数
+  state.wrongInitialTotal = wrongWordsList.length;
   renderLearnView();
 }
