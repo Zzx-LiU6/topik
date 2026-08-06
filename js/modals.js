@@ -28,6 +28,7 @@ function showCompletionModal() {
   
   function dismissCompletionModal() {
       closeCompletionModal();
+      localStorage.removeItem('topik_wrong_review_state'); 
       state.wrongInitialTotal = 0;  // 重置初始总数
       if (state.currentView === 'wrong') {
           goToWrongWords();
