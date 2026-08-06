@@ -330,7 +330,11 @@ async function handleAction(action) {
 
     saveToStorageDebounced();
     resetCard();
-    renderCurrentView();
+    if (state.currentView === 'wrong') {
+        renderLearnView();
+    } else {
+        renderCurrentView();
+    }
 }
   
 function toggleBookmark(wordId) {
