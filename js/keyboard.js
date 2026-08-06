@@ -13,7 +13,7 @@ function setupKeyboard() {
     }
 
     // 原有的视图检测
-    if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks') return;
+    if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks' && state.currentView !== 'wrong') return;
 
     switch (e.key) {
       case ' ':
