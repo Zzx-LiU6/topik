@@ -43,18 +43,20 @@ async function renderOverviewView() {
       filteredWords = filteredWords.filter(w => w.level === '中级');
     }
   
-    // 再按状态过滤（原有的代码保持不变）
-    if (state.selectedFilter === 'new') {
-      filteredWords = allWords.filter(w => getWordStatus(w.id) === 'new');
-    } else if (state.selectedFilter === 'review') {
-      filteredWords = allWords.filter(w => getWordStatus(w.id) === 'review');
-    } else if (state.selectedFilter === 'mastered') {
-      filteredWords = allWords.filter(w => getWordStatus(w.id) === 'mastered');
-    } else if (state.selectedFilter === 'permanent') {
-      filteredWords = allWords.filter(w => getWordStatus(w.id) === 'permanent');
-    } else if (state.selectedFilter === 'bookmarked') {
-      filteredWords = allWords.filter(w => bookmarkedWords.includes(w.korean));
-    }
+  // 再按状态过滤（基于已等级筛选的结果）
+  if (state.selectedFilter === 'new') {
+    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'new');
+  } else if (state.selectedFilter === 'review') {
+    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'review');
+  } else if (state.selectedFilter === 'mastered') {
+    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'mastered');
+  } else if (state.selectedFilter === 'permanent') {
+    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'permanent');
+  } else if (state.selectedFilter === 'bookmarked') {
+    filteredWords = levelFilteredWords.filter(w => bookmarkedWords.includes(w.korean));
+  } else {
+    filteredWords = levelFilteredWords;  // 'all' 状态
+  }
   
     //【修改】应用搜索过滤
     const rawKeyword = state.searchKeyword.trim();
@@ -239,4 +241,3 @@ async function renderOverviewView() {
       </div>
     `;
   }
-  
