@@ -328,6 +328,7 @@ async function handleAction(action) {
     }
 
     saveToStorageDebounced();
+    saveWrongReviewState();
     resetCard();
     if (state.currentView === 'wrong') {
         renderLearnView();
