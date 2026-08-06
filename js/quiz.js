@@ -371,6 +371,7 @@ function renderQuizResult() {
       state.wrongWords.push(w.korean);
     }
   });
+  saveToStorage(); 
 
   elements.app.innerHTML = `
     <div>
@@ -711,6 +712,7 @@ function renderSpellResult() {
       state.wrongWords.push(r.word.korean);
     }
   });
+  saveToStorage(); 
 
   elements.app.innerHTML = `
     <div>
