@@ -158,23 +158,32 @@ async function init() {
   
   // 如果词库已加载，检查 bookmarkedWords 是否为旧格式（id 包含 '-'），进行迁移
   if (vocabularyLoaded && bookmarkedWords.length > 0 && typeof bookmarkedWords[0] === 'string' && bookmarkedWords[0].includes('-')) {
-    const migrated = [];
-    for (const item of bookmarkedWords) {
-      const setKey = getSetKeyFromWordId(item);
-      if (setKey && allVocabularySets[setKey]) {
-        const word = allVocabularySets[setKey].find(w => w.id === item);
-        if (word) migrated.push(word.korean);
+      const migrated = [];
+      const unmatched = [];
+      for (const item of bookmarkedWords) {
+          const setKey = getSetKeyFromWordId(item);
+          if (setKey && allVocabularySets[setKey]) {
+              const word = allVocabularySets[setKey].find(w => w.id === item);
+              if (word) {
+                  migrated.push(word.korean);
+              } else {
+                  unmatched.push(item);
+              }
+          } else {
+              unmatched.push(item);
+          }
       }
-    }
-    if (migrated.length > 0) {
-      bookmarkedWords = migrated;
-      saveToStorageDebounced();
-      console.log('收藏格式已迁移到 korean');
-    } else {
-      // 如果旧收藏全都找不到对应单词，清空收藏本
-      bookmarkedWords = [];
-      saveToStorageDebounced();
-    }
+      if (migrated.length > 0) {
+          bookmarkedWords = migrated;
+          saveToStorageDebounced();
+          console.log(`收藏格式已迁移到 korean，成功 ${migrated.length} 项`);
+          if (unmatched.length > 0) {
+              console.warn('以下收藏项无法匹配到词库，已保留原值:', unmatched);
+          }
+      } else {
+          // 如果一条都没迁移成功，保留原数据，不清空，等待下次数据更新
+          console.warn('收藏格式为旧版但无法匹配任何单词，已保留原数组');
+      }
   }
 
     // 如果 URL 带有 hash，恢复对应视图（用于刷新停留在当前页面）
@@ -227,6 +236,22 @@ async function init() {
     }
   }
 
+  // ===== 新增：恢复错题复习状态 =====
+  // 只有当前视图是 home 时才恢复，避免覆盖 quiz/spell
+  if (state.currentView === 'home') {
+    const wrongState = restoreWrongReviewState();
+    if (wrongState) {
+      state.currentView = 'wrong';
+      state.currentQueue = wrongState.words;
+      state.currentIndex = wrongState.index;
+      state.wrongInitialTotal = wrongState.total;
+      // currentView 设为 'wrong' 后，renderCurrentView 会调用 renderWrongView
+      // 但 renderWrongView 会显示列表，而我们想要直接进入复习卡片
+      // 所以需要额外标记：直接进入复习模式
+      state.wrongViewMode = 'review';  // 自定义标记，表示直接进入复习
+    }
+  }
+  // ===== 错题复习恢复结束 =====
   syncCurrentSetKey();
   setupElements();
   await renderCurrentView();
@@ -438,6 +463,7 @@ function renderLoadError() {
 }
 // ========== 页面跳转 ==========
 function goHome() {
+  localStorage.removeItem('topik_wrong_review_state'); 
   state.currentView = 'home';
   state.currentIndex = 0;
   state.searchKeyword = '';  //【修改】清空搜索词
