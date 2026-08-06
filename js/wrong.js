@@ -1,5 +1,6 @@
 // ========== 错题集 ==========
 async function goToWrongWords() {
+  localStorage.removeItem('topik_wrong_review_state');
   state.currentView = 'wrong';
   state.wrongViewMode = 'list';
   state.currentIndex = 0;
@@ -24,6 +25,13 @@ async function renderWrongView() {
         </div>
       </div>
     `;
+    return;
+  }
+
+  // ===== 新增：如果是恢复的复习模式，直接进入卡片 =====
+  if (state.wrongViewMode === 'review' && state.currentQueue && state.currentQueue.length > 0) {
+    state.wrongViewMode = 'list';  // 重置标记，防止循环
+    await renderLearnView();
     return;
   }
   
@@ -108,5 +116,50 @@ function startWrongReview() {
   state.currentIndex = 0;
   // ⭐ 新增：记录初始总题数
   state.wrongInitialTotal = wrongWordsList.length;
+  saveWrongReviewState(); 
   renderLearnView();
+}
+
+// ========== 错题复习状态持久化 ==========
+
+function saveWrongReviewState() {
+    if (state.currentView === 'wrong' && state.currentQueue && state.currentQueue.length > 0) {
+        const data = {
+            wordIds: state.currentQueue.map(w => w.id),   // 只存 id
+            index: state.currentIndex,
+            total: state.wrongInitialTotal || state.currentQueue.length
+        };
+        localStorage.setItem('topik_wrong_review_state', JSON.stringify(data));
+    } else {
+        localStorage.removeItem('topik_wrong_review_state');
+    }
+}
+
+function restoreWrongReviewState() {
+    const saved = localStorage.getItem('topik_wrong_review_state');
+    if (!saved) return null;
+    try {
+        const data = JSON.parse(saved);
+        if (!data.wordIds || data.wordIds.length === 0 || typeof data.index !== 'number') return null;
+        
+        // 根据 id 从词库重建单词对象
+        const words = [];
+        for (const id of data.wordIds) {
+            let found = false;
+            for (const key of sortedSetKeys) {
+                const w = allVocabularySets[key]?.find(w => w.id === id);
+                if (w) {
+                    words.push(w);
+                    found = true;
+                    break;
+                }
+            }
+            // 如果词库中已无此词，跳过（不加入队列）
+        }
+        if (words.length === 0) return null;
+        const index = Math.min(data.index, words.length - 1);
+        return { words, index, total: data.total || words.length };
+    } catch (e) {
+        return null;
+    }
 }
