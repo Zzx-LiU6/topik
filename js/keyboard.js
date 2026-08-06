@@ -12,11 +12,15 @@ function setupKeyboard() {
       return;
     }
 
-    // 原有的视图检测
-    if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks' && state.currentView !== 'wrong') return;
+    // 原有的视图检测，加入 'spell'
+    if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks' && state.currentView !== 'wrong' && state.currentView !== 'spell') return;
 
     switch (e.key) {
       case ' ':
+        // 拼写模式下，空格键正常输入，不翻转卡片
+        if (state.currentView === 'spell') {
+          break;
+        }
         e.preventDefault();
         flipCard();
         break;
