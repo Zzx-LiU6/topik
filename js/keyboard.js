@@ -22,7 +22,11 @@ function setupKeyboard() {
         break;
       case 'Enter':
         e.preventDefault();
-        flipCard();
+        if (state.currentView === 'spell') {
+          submitSpellAnswer();
+        } else {
+          flipCard();
+        }
         break;
       case 'r':
       case 'R':
@@ -85,38 +89,9 @@ function setupKeyboard() {
           nextBookmarkWord();
         }
         break;
-      case 'Enter':
-        if (state.currentView === 'spell') {
-          e.preventDefault();
-          submitSpellAnswer();
-          break;
-        }
-        e.preventDefault();
-        flipCard();
-        break;
       case 'Escape':
         goHome();
         break;
     }
   });
-}
-  
-// 收藏本切换上一个单词
-function prevBookmarkWord() {
-  const total = state.currentQueue.length;
-  if (total <= 1) return;
-  state.currentIndex = state.currentIndex - 1;
-  if (state.currentIndex < 0) state.currentIndex = total - 1;
-  resetCard();
-  renderCurrentView();
-}
-  
-// 收藏本切换下一个单词
-function nextBookmarkWord() {
-  const total = state.currentQueue.length;
-  if (total <= 1) return;
-  state.currentIndex = state.currentIndex + 1;
-  if (state.currentIndex >= total) state.currentIndex = 0;    
-  resetCard();
-  renderCurrentView();
 }
