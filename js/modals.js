@@ -27,8 +27,12 @@ function showCompletionModal() {
   }
   
   function dismissCompletionModal() {
-    closeCompletionModal();
-    goHome();   // 直接返回首页，避免卡在空白进度页
+      closeCompletionModal();
+      if (state.currentView === 'wrong') {
+          goToWrongWords();  // 回到错题列表
+      } else {
+          goHome();
+      }
   }
   
   function resetCurrentSet() {
