@@ -231,6 +231,34 @@ async function renderQuizView() {
     return;
   }
 
+  // ===== 新增：过滤掉词库中不存在的单词，防止白屏崩溃 =====
+  const validQuestions = state.quizQuestions.filter(q => {
+    let exists = false;
+    for (const key of sortedSetKeys) {
+      if (allVocabularySets[key]?.some(w => w.id === q.word.id)) {
+        exists = true;
+        break;
+      }
+    }
+    return exists;
+  });
+  if (validQuestions.length !== state.quizQuestions.length) {
+    state.quizQuestions = validQuestions;
+    if (state.quizIndex >= state.quizQuestions.length) state.quizIndex = 0;
+    if (state.quizQuestions.length === 0) {
+      localStorage.removeItem('topik_quiz_state');
+      goHome();
+      return;
+    }
+    localStorage.setItem('topik_quiz_state', JSON.stringify({
+      questions: state.quizQuestions,
+      index: state.quizIndex,
+      score: state.quizScore,
+      mode: state.quizMode
+    }));
+  }
+  // ===== 过滤结束 =====
+
   if (state.quizIndex >= state.quizQuestions.length) {
     renderQuizResult();
     return;
@@ -556,6 +584,36 @@ function startSpell(mode) {
 
 async function renderSpellView() {
   if (!state.spellWords || state.spellWords.length === 0) { goHome(); return; }
+
+  // ===== 新增：过滤掉词库中不存在的单词，防止白屏崩溃 =====
+  const validWords = state.spellWords.filter(w => {
+    let exists = false;
+    for (const key of sortedSetKeys) {
+      if (allVocabularySets[key]?.some(word => word.id === w.id)) {
+        exists = true;
+        break;
+      }
+    }
+    return exists;
+  });
+  if (validWords.length !== state.spellWords.length) {
+    state.spellWords = validWords;
+    if (state.spellIndex >= state.spellWords.length) state.spellIndex = 0;
+    if (state.spellWords.length === 0) {
+      localStorage.removeItem('topik_spell_state');
+      goHome();
+      return;
+    }
+    localStorage.setItem('topik_spell_state', JSON.stringify({
+      words: state.spellWords,
+      index: state.spellIndex,
+      score: state.spellScore,
+      results: state.spellResults,
+      mode: state.spellMode
+    }));
+  }
+  // ===== 过滤结束 =====
+
   if (state.spellIndex >= state.spellWords.length) { renderSpellResult(); return; }
 
   const currentWord = state.spellWords[state.spellIndex];
