@@ -85,32 +85,29 @@ async function renderLearnView() {
             返回首页
           </button>
         </header>
-  ${!(isBookmarks || isWrongReview) ? `
-        <!-- 进度区 -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-3">
-            <h1 class="text-lg font-medium text-coffee-600">${pageTitle}</h1>
-            <div class="text-right">
-              <span class="text-2xl font-light text-coffee-500">${percent}%</span>
-              <p class="text-xs text-coffee-400 mt-1">完成度</p>
-            </div>
-          </div>
-          <div class="bg-cream-300 rounded-full h-3 overflow-hidden shadow-inner">
-            <div class="h-full bg-gradient-to-r from-coffee-400 to-coffee-500 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
-          </div>
-          <p class="text-center text-sm text-coffee-400 mt-2">
-            ${isReview ? `进度 ${completed}/${state.reviewTotal}` : (isBookmarks ? `进度 ${state.currentIndex + 1}/${total}` : `学习进度 ${completed} 个 / 共 ${total} 个`)}
-          </p>
+  ${!(isBookmarks) ? `
+    <!-- 进度区 -->
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h1 class="text-lg font-medium text-coffee-600">${pageTitle}</h1>
+        <div class="text-right">
+          <span class="text-2xl font-light text-coffee-500">${percent}%</span>
+          <p class="text-xs text-coffee-400 mt-1">完成度</p>
         </div>
+      </div>
+      <div class="bg-cream-300 rounded-full h-3 overflow-hidden shadow-inner">
+        <div class="h-full bg-gradient-to-r from-coffee-400 to-coffee-500 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+      </div>
+      <p class="text-center text-sm text-coffee-400 mt-2">
+        ${isReview ? `进度 ${completed}/${state.reviewTotal}` :
+          isWrongReview ? `错题复习 ${state.currentIndex + 1}/${total}` :
+          `学习进度 ${completed} 个 / 共 ${total} 个`}
+      </p>
+    </div>
   ` : ''}
   ${isBookmarks ? `
   <p class="text-center text-sm text-coffee-400 mb-2">
   当前 ${state.currentIndex + 1} / 共 ${total} 个收藏单词
-  </p>
-  ` : ''}
-  ${isWrongReview ? `
-  <p class="text-center text-sm text-coffee-400 mb-2">
-  错题复习 ${state.currentIndex + 1} / 共 ${total} 题
   </p>
   ` : ''}
         <!-- 单词卡片 -->
