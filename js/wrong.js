@@ -46,6 +46,13 @@ async function renderWrongView() {
     await renderWrongView();
     return;
   }
+
+  // 同步有效错词列表到 state，避免残留
+  const validKoreans = wrongWordsList.map(w => w.korean);
+  if (state.wrongWords.length !== validKoreans.length) {
+    state.wrongWords = validKoreans;
+    saveToStorage();
+  }
   
   if (state.wrongViewMode === 'list') {
     elements.app.innerHTML = `
@@ -97,9 +104,8 @@ function startWrongReview() {
     return;
   }
   state.currentView = 'wrong';
-  state.wrongViewMode = 'learn';
   state.currentQueue = wrongWordsList;
   state.currentIndex = 0;
-  state.mode = 'new';
+  // 不再设置 state.mode，由 renderLearnView 根据 currentView 识别
   renderLearnView();
 }
