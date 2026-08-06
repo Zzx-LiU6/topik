@@ -57,9 +57,11 @@ async function renderLearnView() {
         percent = total > 0 ? Math.round((completed / total) * 100) : 0;
         progressText = `进度 ${completed}/${total}`;
     } else if (isWrongReview) {
-        completed = state.currentIndex;
-        percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-        progressText = `错题复习 ${completed}/${total}`;
+        // 使用初始总题数（如果未设置则回退到当前总数）
+        const initialTotal = state.wrongInitialTotal || total;
+        completed = initialTotal - queue.length;  // 已完成的 = 初始总数 - 剩余数量
+        percent = initialTotal > 0 ? Math.round((completed / initialTotal) * 100) : 0;
+        progressText = `错题复习 ${completed}/${initialTotal}`;
     } else {
         completed = await getCompletedCountForSet(state.currentSetKey);
         percent = Math.round((completed / total) * 100);
@@ -100,7 +102,7 @@ async function renderLearnView() {
       </div>
       <p class="text-center text-sm text-coffee-400 mt-2">
         ${isReview ? `进度 ${completed}/${state.reviewTotal}` :
-          isWrongReview ? `错题复习 ${completed}/${total}` :
+          isWrongReview ? `错题复习 ${completed}/${(state.wrongInitialTotal || total)}` :
           `学习进度 ${completed} 个 / 共 ${total} 个`}
       </p>
     </div>
