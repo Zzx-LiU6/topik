@@ -237,20 +237,16 @@ async function init() {
   }
 
   // ===== 新增：恢复错题复习状态 =====
-  // 只有当前视图是 home 时才恢复，避免覆盖 quiz/spell
-  if (state.currentView === 'home') {
-    const wrongState = restoreWrongReviewState();
-    if (wrongState) {
-      state.currentView = 'wrong';
-      state.currentQueue = wrongState.words;
-      state.currentIndex = wrongState.index;
-      state.wrongInitialTotal = wrongState.total;
-      // currentView 设为 'wrong' 后，renderCurrentView 会调用 renderWrongView
-      // 但 renderWrongView 会显示列表，而我们想要直接进入复习卡片
-      // 所以需要额外标记：直接进入复习模式
-      state.wrongViewMode = 'review';  // 自定义标记，表示直接进入复习
-    }
+  // 无论当前视图是什么，只要存储中有错题复习状态就恢复
+  const wrongState = restoreWrongReviewState();
+  if (wrongState) {
+    state.currentView = 'wrong';
+    state.currentQueue = wrongState.words;
+    state.currentIndex = wrongState.index;
+    state.wrongInitialTotal = wrongState.total;
+    state.wrongViewMode = 'review';
   }
+  
   // ===== 错题复习恢复结束 =====
   syncCurrentSetKey();
   setupElements();
