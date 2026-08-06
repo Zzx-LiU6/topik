@@ -1,21 +1,22 @@
 // ========== 弹窗 ==========
 function showCompletionModal() {
-    const modal = document.getElementById('completion-modal');
-    if (!modal) return;
-  
-    // 根据当前模式调整弹窗按钮
-    const isReviewMode = state.mode === 'review' || state.currentView === 'review';
-    const loadNewSetBtn = modal.querySelector('#load-new-set-btn');
-    const resetBtn = modal.querySelector('#reset-current-set-btn');
-  
-    if (loadNewSetBtn) {
-      // 复习模式下隐藏“背诵下一套单词”按钮
-      loadNewSetBtn.style.display = isReviewMode ? 'none' : '';
-    }
-  
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+  const modal = document.getElementById('completion-modal');
+  if (!modal) return;
+
+  const isReviewOrWrong = state.mode === 'review' || state.currentView === 'review' || state.currentView === 'wrong';
+  const loadNewSetBtn = modal.querySelector('#load-new-set-btn');
+  const resetBtn = modal.querySelector('#reset-current-set-btn');
+
+  if (loadNewSetBtn) {
+    loadNewSetBtn.style.display = isReviewOrWrong ? 'none' : '';
   }
+  if (resetBtn) {
+    resetBtn.style.display = isReviewOrWrong ? 'none' : '';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
   
   function closeCompletionModal() {
     const modal = document.getElementById('completion-modal');
@@ -31,6 +32,7 @@ function showCompletionModal() {
   }
   
   function resetCurrentSet() {
+    state.currentQueue = [];   // 清空队列，防止残留
     const words = allVocabularySets[state.currentSetKey] || [];
     words.forEach(w => delete wordProgress[w.id]);
     state.currentIndex = 0;
