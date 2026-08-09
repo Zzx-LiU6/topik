@@ -29,7 +29,6 @@ function getWordsByDate(dateStr, type) {
   var today = getToday();
   var words = [];
 
-  // 未来的日期不显示复习数据
   if (type === 'review' && dateStr > today) {
     return words;
   }
@@ -38,17 +37,20 @@ function getWordsByDate(dateStr, type) {
     var progress = wordProgress[wordId];
     var match = false;
 
-    // 今日新学：首次学习日期匹配，且不是永久掌握
     if (type === 'new' && progress.firstLearnedDate === dateStr && progress.status !== 'permanent') {
       match = true;
     }
-    // 今日复习：状态为 mastered，不是首次学习日，且 reviewHistory 包含该日期
+    
     if (type === 'review' && progress.status === 'mastered' && progress.firstLearnedDate !== dateStr) {
+      // 优先使用 reviewHistory（新数据），如果没有则回退到 lastReviewDate（旧数据）
       if (Array.isArray(progress.reviewHistory) && progress.reviewHistory.includes(dateStr)) {
+        match = true;
+      } else if (progress.lastReviewDate === dateStr) {
+        // 兼容旧数据：如果 lastReviewDate 匹配，也认为是复习记录
         match = true;
       }
     }
-    // 彻底掌握：永久掌握日期匹配
+    
     if (type === 'permanent' && progress.permanentDate === dateStr) {
       match = true;
     }
@@ -86,17 +88,23 @@ function getCalendarData(year, month) {
     for (var wordId in wordProgress) {
       var p = wordProgress[wordId];
 
-      // 今日新学
       if (p.firstLearnedDate === dateStr && p.status !== 'permanent') {
         newCount++;
       }
-      // 今日复习（使用 reviewHistory，且排除首次学习日）
+      
       if (isPastOrToday && p.status === 'mastered' && p.firstLearnedDate !== dateStr) {
+        // 优先使用 reviewHistory，没有则回退到 lastReviewDate
+        var hasReview = false;
         if (Array.isArray(p.reviewHistory) && p.reviewHistory.includes(dateStr)) {
+          hasReview = true;
+        } else if (p.lastReviewDate === dateStr) {
+          hasReview = true;
+        }
+        if (hasReview) {
           reviewCount++;
         }
       }
-      // 彻底掌握
+      
       if (p.permanentDate === dateStr) {
         permanentCount++;
       }
