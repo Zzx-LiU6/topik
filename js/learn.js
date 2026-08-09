@@ -247,22 +247,28 @@ async function handleAction(action) {
     const existing = wordProgress[currentWord.id];
 
     if (action === 'mastered') {
-        // 判断是否为新词（以前从未掌握过）
         const isNewWord = !existing || existing.status !== 'mastered';
       
         if (isNewWord) {
-            // 新词首次掌握：记录首次学习日期，并安排明天复习
+            // 首次掌握：记录首次学习日期，安排明天复习，初始化复习历史为空
             wordProgress[currentWord.id] = {
                 status: 'mastered',
                 firstLearnedDate: today,
                 lastReviewDate: null,
                 nextReviewDate: addDays(today, 1),
-                reviewCount: 0
+                reviewCount: 0,
+                reviewHistory: []   // ← 新增
             };
         } else {
-            // 复习词再次掌握：更新复习日期，递增复习计数，安排下一次复习
+            // 复习：增加计数，更新 lastReviewDate，安排下次复习，并记录复习日期
             existing.reviewCount = (existing.reviewCount || 0) + 1;
             existing.lastReviewDate = today;
+            // 初始化 reviewHistory（兼容旧数据）
+            if (!Array.isArray(existing.reviewHistory)) {
+                existing.reviewHistory = [];
+            }
+            existing.reviewHistory.push(today);   // ← 关键：记录本次复习日期
+            
             const intervals = [1, 2, 4, 7, 15, 30];
             const idx = Math.min(existing.reviewCount, intervals.length - 1);
             existing.nextReviewDate = addDays(today, intervals[idx]);
