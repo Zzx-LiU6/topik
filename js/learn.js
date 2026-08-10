@@ -257,7 +257,7 @@ async function handleAction(action) {
                 lastReviewDate: null,
                 nextReviewDate: addDays(today, 1),
                 reviewCount: 0,
-                reviewHistory: []   // ← 必须有这一行
+                reviewHistory: existing?.reviewHistory ? existing.reviewHistory.slice() : []
             };
         } else {
             // 复习：记录复习日期
