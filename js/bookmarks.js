@@ -51,9 +51,41 @@ async function renderBookmarksView() {
   
 // 单词详情查看页（仅浏览，不参与背诵，不会弹出完成弹窗）
 async function renderWordDetailView(targetWord) {
+  // ===== 增加保护性检查 =====
+  if (!targetWord || !targetWord.id) {
+    console.warn('renderWordDetailView: targetWord 为空，返回总览');
+    goToOverview();
+    return;
+  }
+  // ===== 保护性检查结束 =====
+
   const word = targetWord;
   const status = getWordStatus(word.id);
   const isBookmarked = bookmarkedWords.includes(word.korean);
+  
+  // 生成时间线 HTML（独立的样式，和例句区分）
+  let timelineHTML = '';
+  const progress = wordProgress[word.id];
+  if (progress) {
+    const parts = [];
+    if (progress.firstLearnedDate) parts.push(`⭐ 首次学习 ${progress.firstLearnedDate}`);
+    if (Array.isArray(progress.reviewHistory) && progress.reviewHistory.length > 0) {
+      progress.reviewHistory.forEach(date => parts.push(`🔁 复习 ${date}`));
+    }
+    if (progress.status === 'permanent' && progress.permanentDate) {
+      parts.push(`🏆 彻底掌握 ${progress.permanentDate}`);
+    }
+    if (parts.length > 0) {
+      timelineHTML = `
+        <div class="mt-4 p-4 rounded-2xl border-2 border-dashed border-coffee-300 bg-cream-50/50">
+          <p class="text-xs font-medium text-coffee-400 mb-2">📅 学习历程</p>
+          <div class="text-sm text-coffee-500 space-y-1">
+            ${parts.map(p => `<div>${p}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
   
   elements.app.innerHTML = `
     <div>
@@ -103,6 +135,9 @@ async function renderWordDetailView(targetWord) {
           <p class="text-sm text-coffee-400">${word.exampleCn || ''}</p>
         </div>
         ` : ''}
+
+        <!-- ===== 时间线在例句下方，独立样式 ===== -->
+        ${timelineHTML}
       </div>
 
       <div class="flex justify-center">
@@ -117,4 +152,3 @@ async function renderWordDetailView(targetWord) {
     </div>
   `;
 }
-  
