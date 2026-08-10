@@ -250,26 +250,21 @@ async function handleAction(action) {
         const isNewWord = !existing || existing.status !== 'mastered';
       
         if (isNewWord) {
-            // 首次掌握：初始化 reviewHistory 为空数组
             wordProgress[currentWord.id] = {
                 status: 'mastered',
                 firstLearnedDate: today,
-                lastReviewDate: null,
+                lastReviewDate: today,
                 nextReviewDate: addDays(today, 1),
-                reviewCount: 0,
-                reviewHistory: existing?.reviewHistory ? existing.reviewHistory.slice() : []
+                reviewCount: 1,
+                reviewHistory: [today]
             };
         } else {
-            // 复习：记录复习日期
             existing.reviewCount = (existing.reviewCount || 0) + 1;
-            existing.lastReviewDate = today;  // ← 保留 lastReviewDate 用于兼容
-            
-            // 确保 reviewHistory 是数组
+            existing.lastReviewDate = today;
             if (!Array.isArray(existing.reviewHistory)) {
                 existing.reviewHistory = [];
             }
-            existing.reviewHistory.push(today);   // ← 记录本次复习日期
-            
+            existing.reviewHistory.push(today);
             const intervals = [1, 2, 4, 7, 15, 30];
             const idx = Math.min(existing.reviewCount, intervals.length - 1);
             existing.nextReviewDate = addDays(today, intervals[idx]);
@@ -297,13 +292,13 @@ async function handleAction(action) {
         }
 
     } else if (action === 'permanent') {
-        // 彻底掌握：不更新 lastReviewDate（不计入“今日复习”）
         wordProgress[currentWord.id] = {
             status: 'permanent',
             firstLearnedDate: existing?.firstLearnedDate || today,
             permanentDate: today,
             nextReviewDate: null,
-            reviewCount: 0
+            reviewCount: (existing?.reviewCount || 0) + 1,
+            reviewHistory: existing?.reviewHistory ? existing.reviewHistory.slice() : []
         };
 
         // 从队列中移除
