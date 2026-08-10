@@ -84,7 +84,6 @@ function getCalendarData(year, month) {
     var reviewCount = 0;
     var permanentCount = 0;
 
-    // 在循环每个日期时
     for (var wordId in wordProgress) {
       var p = wordProgress[wordId];
 
@@ -93,7 +92,6 @@ function getCalendarData(year, month) {
       }
       
       if (isPastOrToday && p.status === 'mastered' && p.firstLearnedDate !== dateStr) {
-        // 优先使用 reviewHistory，没有则回退到 lastReviewDate
         var hasReview = false;
         if (Array.isArray(p.reviewHistory) && p.reviewHistory.includes(dateStr)) {
           hasReview = true;
@@ -131,39 +129,43 @@ async function renderCalendarView() {
   var firstDay = data.firstDay;
   var days = data.days;
 
+  // ===== 修改：点击日期只显示数字统计，不显示具体单词列表 =====
   var detailHTML = '';
   if (state.selectedDate) {
     var newWords = getWordsByDate(state.selectedDate, 'new');
     var reviewWords = getWordsByDate(state.selectedDate, 'review');
     var permanentWords = getWordsByDate(state.selectedDate, 'permanent');
 
-    detailHTML = `
-      <div class="bg-white rounded-2xl p-4 mt-4 space-y-3">
-        ${newWords.length > 0 ? `
-        <div>
-          <h4 class="text-sm font-medium text-coffee-600 mb-2">📖 今日新学 (${newWords.length})</h4>
-          <div class="flex flex-wrap gap-2">
-            ${newWords.map(function(w) { return '<span class="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">' + w.korean + '</span>'; }).join('')}
+    var total = newWords.length + reviewWords.length + permanentWords.length;
+
+    if (total === 0) {
+      detailHTML = `
+        <div class="bg-white rounded-2xl p-6 mt-4 text-center border border-cream-300">
+          <p class="text-sm text-coffee-400">当天没有学习记录</p>
+        </div>
+      `;
+    } else {
+      detailHTML = `
+        <div class="bg-white rounded-2xl p-4 mt-4 border border-cream-300">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="p-3 bg-green-50 rounded-xl">
+              <div class="text-2xl font-bold text-green-600">${newWords.length}</div>
+              <div class="text-xs text-coffee-400 mt-0.5">📖 新学</div>
+            </div>
+            <div class="p-3 bg-amber-50 rounded-xl">
+              <div class="text-2xl font-bold text-amber-600">${reviewWords.length}</div>
+              <div class="text-xs text-coffee-400 mt-0.5">🔁 复习</div>
+            </div>
+            <div class="p-3 bg-purple-50 rounded-xl">
+              <div class="text-2xl font-bold text-purple-600">${permanentWords.length}</div>
+              <div class="text-xs text-coffee-400 mt-0.5">🏆 掌握</div>
+            </div>
           </div>
-        </div>` : ''}
-        ${reviewWords.length > 0 ? `
-        <div>
-          <h4 class="text-sm font-medium text-coffee-600 mb-2">🔁 今日复习 (${reviewWords.length})</h4>
-          <div class="flex flex-wrap gap-2">
-            ${reviewWords.map(function(w) { return '<span class="px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-full">' + w.korean + '</span>'; }).join('')}
-          </div>
-        </div>` : ''}
-        ${permanentWords.length > 0 ? `
-        <div>
-          <h4 class="text-sm font-medium text-coffee-600 mb-2">🏆 彻底掌握 (${permanentWords.length})</h4>
-          <div class="flex flex-wrap gap-2">
-            ${permanentWords.map(function(w) { return '<span class="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full">' + w.korean + '</span>'; }).join('')}
-          </div>
-        </div>` : ''}
-        ${newWords.length === 0 && reviewWords.length === 0 && permanentWords.length === 0 ? '<p class="text-sm text-coffee-400 text-center">当天没有学习记录</p>' : ''}
-      </div>
-    `;
+        </div>
+      `;
+    }
   }
+  // ===== 修改结束 =====
 
   var weekDays = ['日', '一', '二', '三', '四', '五', '六'];
   elements.app.innerHTML = `
