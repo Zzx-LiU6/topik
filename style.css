@@ -73,3 +73,43 @@ button:focus-visible {
   outline: 2px solid #A89880;
   outline-offset: 2px;
 }
+
+/* ===== 日历统计卡片 - 暗色模式适配 ===== */
+body.dark .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+}
+body.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+body.dark .bg-purple-50 {
+  background-color: rgba(167, 139, 250, 0.15) !important;
+}
+body.dark .text-green-600 {
+  color: #4ADE80 !important;
+}
+body.dark .text-amber-600 {
+  color: #FBBF24 !important;
+}
+body.dark .text-purple-600 {
+  color: #A78BFA !important;
+}
+body.dark .bg-white {
+  background-color: var(--bg-card) !important;
+}
+
+/* ===== 学习历程时间线 - 暗色模式适配 ===== */
+body.dark .bg-cream-50 {
+  background-color: #2a3f58 !important;
+}
+body.dark .border-cream-200 {
+  border-color: #475569 !important;
+}
+body.dark .text-coffee-600 {
+  color: #ffffff !important;  /* 白色，最清晰 */
+}
+body.dark .text-coffee-500 {
+  color: #f0e6d8 !important;  /* 亮白，不偏黄 */
+}
+body.dark .text-coffee-400 {
+  color: #c8b8a8 !important;  /* 提示文字可以稍暗 */
+}
