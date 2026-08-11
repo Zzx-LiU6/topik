@@ -1,23 +1,30 @@
 // ========== 生词收藏本页面（异步） ==========
+
+// 当前查看的分类（用于分类内单词列表）
+let currentBookmarkCategory = null;
+
+// ---- 获取所有收藏的单词对象 ----
 async function getBookmarkedWords() {
   const words = [];
-  for (const kw of bookmarkedWords) { // 现在 bookmarkedWords 里是韩文单词字符串
-    // 在所有套装中寻找匹配的单词（取第一个匹配即可）
+  // bookmarkedWords 现在是对象数组 [{word: '사과', category: '水果'}, ...]
+  for (const item of bookmarkedWords) {
+    const kw = item.word;
+    // 在所有套装中寻找匹配的单词
     for (const setKey of sortedSetKeys) {
       const word = allVocabularySets[setKey]?.find(w => w.korean === kw);
       if (word) {
         words.push(word);
-        break; // 找到一个就跳出，避免重复添加
+        break;
       }
     }
   }
   return words;
 }
-  
+
+// ---- 渲染收藏本主视图 ----
 async function renderBookmarksView() {
-  const bookmarkedWordsList = await getBookmarkedWords();
-  
-  if (bookmarkedWordsList.length === 0) {
+  // 如果收藏为空，显示空状态
+  if (bookmarkedWords.length === 0) {
     elements.app.innerHTML = `
       <div>
         <header class="mb-6">
@@ -30,7 +37,7 @@ async function renderBookmarksView() {
         </header>
         <div class="text-center py-12">
           <div class="text-5xl mb-4">📭</div>
-          <h2 class="text-lg font-medium text-coffee-600 mb-2">生词收藏本为空</h2>
+          <h2 class="text-lg font-medium text-coffee-600 mb-2">收藏本为空</h2>
           <p class="text-sm text-coffee-400 mb-6">在背诵页面点击「加入生词本」可收藏难点词汇</p>
           <button onclick="goHome()" class="px-6 py-2 bg-coffee-400 hover:bg-coffee-500 text-white rounded-xl transition-colors">
             返回首页
@@ -41,114 +48,450 @@ async function renderBookmarksView() {
     return;
   }
   
-  state.currentView = 'bookmarks';
-  state.currentQueue = bookmarkedWordsList;
-  if (state.currentIndex >= bookmarkedWordsList.length) {
-    state.currentIndex = 0;
-  }
-  await renderLearnView();
-}
-  
-// 单词详情查看页（仅浏览，不参与背诵，不会弹出完成弹窗）
-async function renderWordDetailView(targetWord) {
-  // ===== 增加保护性检查 =====
-  if (!targetWord || !targetWord.id) {
-    console.warn('renderWordDetailView: targetWord 为空，返回总览');
-    goToOverview();
+  // 如果有选中的分类，显示该分类的单词列表
+  if (currentBookmarkCategory) {
+    await renderCategoryWords(currentBookmarkCategory);
     return;
   }
-  // ===== 保护性检查结束 =====
-
-  const word = targetWord;
-  const status = getWordStatus(word.id);
-  const isBookmarked = bookmarkedWords.includes(word.korean);
   
-  // 生成时间线 HTML（独立的样式，和例句区分）
-  let timelineHTML = '';
-  const progress = wordProgress[word.id];
-  if (progress) {
-    const parts = [];
-    if (progress.firstLearnedDate) parts.push(`⭐ 首次学习 ${progress.firstLearnedDate}`);
-    if (Array.isArray(progress.reviewHistory) && progress.reviewHistory.length > 0) {
-      progress.reviewHistory.forEach(date => parts.push(`🔁 复习 ${date}`));
-    }
-    if (progress.status === 'permanent' && progress.permanentDate) {
-      parts.push(`🏆 彻底掌握 ${progress.permanentDate}`);
-    }
-    if (parts.length > 0) {
-      timelineHTML = `
-        <div class="mt-4 p-4 rounded-2xl border-2 border-dashed border-coffee-300 bg-cream-50/50">
-          <p class="text-xs font-medium text-coffee-400 mb-2">📅 学习历程</p>
-          <div class="text-sm text-coffee-500 space-y-1">
-            ${parts.map(p => `<div>${p}</div>`).join('')}
-          </div>
-        </div>
-      `;
-    }
+  // 否则显示分类列表
+  await renderCategoryList();
+}
+
+// ---- 分类列表视图 ----
+async function renderCategoryList() {
+  // 提取所有分类
+  var categories = [];
+  bookmarkedWords.forEach(function(item) {
+    var cat = item.category || '未分类';
+    if (categories.indexOf(cat) === -1) categories.push(cat);
+  });
+  categories.sort();
+  // 把"未分类"放到最后
+  var idx = categories.indexOf('未分类');
+  if (idx > -1) {
+    categories.splice(idx, 1);
+    categories.push('未分类');
   }
+  
+  var totalWords = bookmarkedWords.length;
   
   elements.app.innerHTML = `
     <div>
       <header class="mb-6">
-        <button onclick="goToOverview()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+        <button onclick="goHome()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
           <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
-          返回词汇总览
+          返回首页
         </button>
       </header>
+      
+      <h1 class="text-xl font-medium text-coffee-600 mb-2">⭐ 收藏本</h1>
+      <p class="text-sm text-coffee-400 mb-4">共 ${totalWords} 个单词 · ${categories.length} 个分类</p>
+      
+      <div class="grid grid-cols-2 gap-3">
+        ${categories.map(function(cat) {
+          var count = bookmarkedWords.filter(function(item) {
+            return (item.category || '未分类') === cat;
+          }).length;
+          var emoji = getCategoryEmoji(cat);
+          return `
+            <div class="p-4 bg-white rounded-2xl shadow-md border border-cream-300 cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1"
+                 onclick="selectBookmarkCategory('${cat}')">
+              <div class="text-3xl mb-1">${emoji}</div>
+              <div class="font-medium text-coffee-600 text-sm truncate">${cat}</div>
+              <div class="text-xs text-coffee-400">${count} 个单词</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
 
-      <h1 class="text-xl font-medium text-coffee-600 mb-4">单词详情</h1>
+// ---- 选择分类 ----
+function selectBookmarkCategory(category) {
+  currentBookmarkCategory = category;
+  renderCurrentView();
+}
 
-      <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-4">
-        <div class="flex justify-between items-start mb-4">
-          <span class="text-4xl font-medium text-coffee-600">${word.korean}</span>
-          <button class="p-2 rounded-full hover:bg-cream-100 transition-all speaker-btn"
-                  onclick="speakWord('${word.korean}')">
-            <svg class="w-6 h-6 text-coffee-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M6 10v4a2 2 0 002 2h2l3 3V8l-3 3H8a2 2 0 00-2 2z"/>
+// ---- 返回分类列表 ----
+function backToCategoryList() {
+  currentBookmarkCategory = null;
+  renderCurrentView();
+}
+
+// ---- 渲染分类内的单词列表（卡片翻页模式） ----
+async function renderCategoryWords(category) {
+  // 从 bookmarkedWords 中筛选该分类的单词
+  var words = [];
+  bookmarkedWords.forEach(function(item) {
+    if ((item.category || '未分类') === category) {
+      for (var key of sortedSetKeys) {
+        var found = allVocabularySets[key]?.find(function(w) {
+          return w.korean === item.word;
+        });
+        if (found) {
+          words.push(found);
+          break;
+        }
+      }
+    }
+  });
+  
+  if (words.length === 0) {
+    currentBookmarkCategory = null;
+    renderCurrentView();
+    return;
+  }
+  
+  state.currentView = 'bookmarks';
+  state.currentQueue = words;
+  state.currentIndex = 0;
+  
+  await renderLearnView();
+  
+  // ===== 替换顶部导航栏：返回按钮 + 分类名（带下拉切换） + 单词数量 =====
+  var header = document.querySelector('.mb-6');
+  if (header) {
+    // 获取所有分类（用于下拉菜单）
+    var allCategories = [];
+    bookmarkedWords.forEach(function(item) {
+      var cat = item.category || '未分类';
+      if (allCategories.indexOf(cat) === -1) allCategories.push(cat);
+    });
+    allCategories.sort();
+    var idx = allCategories.indexOf('未分类');
+    if (idx > -1) {
+      allCategories.splice(idx, 1);
+      allCategories.push('未分类');
+    }
+    
+    header.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <button onclick="backToCategoryList()" class="flex items-center text-coffee-400 hover:text-coffee-500 transition-colors">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            返回
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-medium text-coffee-600">${getCategoryEmoji(category)} ${category}</span>
+          <span class="text-sm text-coffee-400">(${words.length}个)</span>
+          <button onclick="toggleCategoryDropdown('${category}')" 
+                  class="p-1 rounded hover:bg-cream-200 transition-colors text-coffee-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
           </button>
         </div>
-        <p class="text-lg text-coffee-400 tracking-widest mb-4">[${word.roman || ''}]</p>
-
-        <div class="mb-4">
-          <span class="inline-block px-3 py-1 bg-cream-300 rounded-full text-sm text-coffee-500">${word.pos || '词性未知'}</span>
-          ${(()=>{
-            const statusText = status === 'permanent' ? '永久掌握' :
-                               status === 'mastered' ? '已熟记' :
-                               status === 'review' ? '待复习' : '未学习';
-            const statusBadgeClass = status === 'permanent' ? 'bg-green-100 text-green-600' :
-                                     status === 'mastered' ? 'bg-coffee-100 text-coffee-600' :
-                                     status === 'review' ? 'bg-amber-100 text-amber-600' : 'bg-cream-200 text-coffee-400';
-            return `<span class="ml-2 text-xs px-2 py-0.5 rounded-full ${statusBadgeClass}">${statusText}</span>`;
-          })()}
-        </div>
-
-        <div class="py-3 border-t border-b border-cream-200 mb-4">
-          <p class="text-xl text-coffee-500 font-medium">${word.meaning || '（待补充）'}</p>
-        </div>
-
-        ${word.exampleKr ? `
-        <div class="bg-cream-50 rounded-2xl p-4">
-          <p class="text-base text-coffee-600 mb-2">${word.exampleKr}</p>
-          <p class="text-sm text-coffee-400">${word.exampleCn || ''}</p>
-        </div>
-        ` : ''}
-
-        <!-- ===== 时间线在例句下方，独立样式 ===== -->
-        ${timelineHTML}
       </div>
+      <div id="category-dropdown-container" class="relative mt-2 hidden">
+        <div class="absolute right-0 z-20 w-48 bg-white rounded-xl shadow-lg border border-cream-300 py-1 max-h-48 overflow-y-auto">
+          ${allCategories.map(function(cat) {
+            var count = bookmarkedWords.filter(function(item) {
+              return (item.category || '未分类') === cat;
+            }).length;
+            var isActive = cat === category;
+            return `
+              <button onclick="switchToCategory('${cat}')" 
+                      class="w-full text-left px-4 py-2 text-sm hover:bg-cream-50 transition-colors flex items-center justify-between ${isActive ? 'bg-cream-100 text-coffee-600 font-medium' : 'text-coffee-500'}">
+                <span>${getCategoryEmoji(cat)} ${cat}</span>
+                <span class="text-xs text-coffee-400">${count}个</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+}
 
-      <div class="flex justify-center">
-        <button onclick="toggleBookmark('${word.id}')"
-                class="flex items-center px-4 py-2 rounded-xl text-sm transition-all ${isBookmarked ? 'bg-yellow-100 text-yellow-600' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
-          <svg class="w-4 h-4 mr-1 ${isBookmarked ? 'fill-current' : ''}" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-          </svg>
-          ${isBookmarked ? '已收藏' : '加入生词本'}
+// ---- 切换分类下拉菜单显示/隐藏 ----
+function toggleCategoryDropdown(currentCategory) {
+  var container = document.getElementById('category-dropdown-container');
+  if (!container) return;
+  container.classList.toggle('hidden');
+  // 点击其他地方关闭下拉（只绑定一次）
+  if (!container.dataset.listener) {
+    container.dataset.listener = 'true';
+    document.addEventListener('click', function(e) {
+      var dropdown = document.getElementById('category-dropdown-container');
+      if (!dropdown) return;
+      var target = e.target.closest('#category-dropdown-container');
+      var btn = e.target.closest('[onclick*="toggleCategoryDropdown"]');
+      if (!target && !btn) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  }
+}
+
+// ---- 切换到其他分类 ----
+function switchToCategory(category) {
+    var container = document.getElementById('category-dropdown-container');
+    if (container) container.classList.add('hidden');
+    currentBookmarkCategory = category;
+    state.currentView = 'bookmarks';
+    // 重新渲染，会触发 renderCategoryWords 重新设置队列
+    renderCurrentView();
+}
+
+// ---- 分类图标映射 ----
+function getCategoryEmoji(category) {
+  var map = {
+    '未分类': '📂',
+    '水果': '🍎',
+    '动物': '🐱',
+    '食物': '🍜',
+    '教育': '📚',
+    '旅游': '✈️',
+    '购物': '🛍️',
+    '家庭': '🏠',
+    '工作': '💼',
+    '健康': '💪',
+    '天气': '🌤️',
+    '颜色': '🎨',
+    '交通': '🚗',
+    '服装': '👔',
+    '建筑': '🏛️',
+    '艺术': '🎨',
+    '音乐': '🎵',
+    '运动': '⚽',
+    '科技': '💻',
+    '自然': '🌿'
+  };
+  return map[category] || '📁';
+}
+
+// ---- 显示分类选择器弹窗 ----
+function showCategoryPicker(wordId) {
+  // 获取单词
+  let word = null;
+  for (const setKey of sortedSetKeys) {
+    const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
+    if (found) { word = found; break; }
+  }
+  if (!word) return;
+  
+  // 当前收藏状态
+  const existing = bookmarkedWords.find(function(item) {
+    return item.word === word.korean;
+  });
+  const currentCategory = existing ? existing.category : null;
+  
+  // 获取所有分类
+  var categories = [];
+  bookmarkedWords.forEach(function(item) {
+    var cat = item.category || '未分类';
+    if (categories.indexOf(cat) === -1) categories.push(cat);
+  });
+  categories.sort();
+  var idx = categories.indexOf('未分类');
+  if (idx > -1) {
+    categories.splice(idx, 1);
+    categories.push('未分类');
+  }
+  
+  // 创建弹窗
+  var overlay = document.createElement('div');
+  overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-coffee-600/30 backdrop-blur-sm';
+  overlay.innerHTML = `
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 w-[90%] max-w-sm border border-cream-300 fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-medium text-coffee-600">⭐ 添加到收藏</h3>
+        <button onclick="this.closest('.fixed').remove()" class="text-coffee-400 hover:text-coffee-600 text-xl">✕</button>
+      </div>
+      
+      <p class="text-sm text-coffee-500 mb-3">
+        ${word.korean} <span class="text-coffee-400">${word.meaning}</span>
+      </p>
+      
+      <div class="space-y-2 max-h-48 overflow-y-auto">
+        ${categories.map(function(cat) {
+          var count = bookmarkedWords.filter(function(item) {
+            return (item.category || '未分类') === cat;
+          }).length;
+          var isActive = (currentCategory === cat);
+          return `
+            <button class="category-option w-full px-4 py-2.5 rounded-xl text-left transition-all text-sm
+              ${isActive ? 'bg-coffee-400 text-white' : 'bg-white hover:bg-cream-50 border border-cream-300 text-coffee-600'}"
+              data-category="${cat}">
+              📂 ${cat} (${count}个)
+              ${isActive ? ' ✅' : ''}
+            </button>
+          `;
+        }).join('')}
+        
+        <button class="w-full px-4 py-2.5 rounded-xl text-left text-sm border-2 border-dashed border-cream-300 text-coffee-400 hover:border-coffee-400 hover:text-coffee-600 transition-all"
+                onclick="createNewCategoryFromPicker('${wordId}')">
+          ＋ 新建分类
+        </button>
+      </div>
+      
+      <div class="flex gap-2 mt-4">
+        ${currentCategory ? `
+          <button onclick="removeBookmark('${wordId}')" class="flex-1 px-4 py-2 bg-red-50 text-red-500 rounded-xl text-sm transition-all hover:bg-red-100">
+            移除收藏
+          </button>
+        ` : ''}
+        <button onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 bg-cream-200 text-coffee-500 rounded-xl text-sm transition-all hover:bg-cream-300">
+          取消
         </button>
       </div>
     </div>
   `;
+  document.body.appendChild(overlay);
+  
+  // 分类点击事件
+  overlay.querySelectorAll('.category-option').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var category = this.dataset.category;
+      toggleBookmarkWithCategory(wordId, category);
+      overlay.remove();
+    });
+  });
+}
+
+// ---- 新建分类（自定义弹窗） ----
+function createNewCategoryFromPicker(wordId) {
+  // 获取当前分类选择器弹窗
+  var parentOverlay = document.querySelector('.fixed');
+  
+  // 创建自定义输入弹窗
+  var inputOverlay = document.createElement('div');
+  inputOverlay.className = 'fixed inset-0 z-[55] flex items-center justify-center bg-coffee-600/30 backdrop-blur-sm';
+  inputOverlay.innerHTML = `
+    <div class="bg-cream-100 rounded-3xl shadow-2xl p-6 w-[90%] max-w-sm border border-cream-300 fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-medium text-coffee-600">📁 新建分类</h3>
+        <button onclick="this.closest('.fixed').remove()" class="text-coffee-400 hover:text-coffee-600 text-xl">✕</button>
+      </div>
+      
+      <p class="text-sm text-coffee-400 mb-3">输入新分类的名称：</p>
+      
+      <input type="text" id="new-category-input" 
+             class="w-full px-4 py-3 bg-white border border-cream-300 rounded-xl text-coffee-600 text-base focus:outline-none focus:border-coffee-400 transition-colors"
+             placeholder="例如：水果、动物、旅行..."
+             autofocus
+             onkeydown="if(event.key==='Enter') confirmNewCategory('${wordId}')">
+      
+      <div class="flex gap-2 mt-4">
+        <button onclick="this.closest('.fixed').remove()" 
+                class="flex-1 px-4 py-2.5 bg-cream-200 hover:bg-cream-300 text-coffee-500 rounded-xl text-sm font-medium transition-all">
+          取消
+        </button>
+        <button onclick="confirmNewCategory('${wordId}')" 
+                class="flex-1 px-4 py-2.5 bg-coffee-400 hover:bg-coffee-500 text-white rounded-xl text-sm font-medium transition-all">
+          创建
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(inputOverlay);
+  
+  // 自动聚焦输入框
+  setTimeout(function() {
+    var input = document.getElementById('new-category-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+// ---- 确认新建分类 ----
+function confirmNewCategory(wordId) {
+  var input = document.getElementById('new-category-input');
+  if (!input) return;
+  var categoryName = input.value.trim();
+  if (!categoryName) {
+    // 简单提示：输入框抖动或变色
+    input.classList.add('border-red-400', 'bg-red-50');
+    setTimeout(function() {
+      input.classList.remove('border-red-400', 'bg-red-50');
+    }, 800);
+    return;
+  }
+  // 关闭输入弹窗
+  var inputOverlay = document.querySelector('.fixed');
+  if (inputOverlay) inputOverlay.remove();
+  // 执行收藏
+  toggleBookmarkWithCategory(wordId, categoryName);
+  // 关闭分类选择器弹窗
+  var parentOverlay = document.querySelector('.fixed');
+  if (parentOverlay) parentOverlay.remove();
+}
+
+// ---- 带分类的收藏 ----
+function toggleBookmarkWithCategory(wordId, category) {
+  let word = null;
+  for (const setKey of sortedSetKeys) {
+    const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
+    if (found) { word = found; break; }
+  }
+  if (!word) return;
+  const kw = word.korean;
+  
+  const existingIndex = bookmarkedWords.findIndex(function(item) {
+    return item.word === kw;
+  });
+  
+  if (existingIndex > -1) {
+    bookmarkedWords[existingIndex].category = category;
+  } else {
+    bookmarkedWords.push({ word: kw, category: category });
+  }
+  
+  // 先保存，再渲染（避免多次触发）
+  saveToStorage();
+  renderCurrentView();
+}
+
+// ---- 移除收藏 ----
+function removeBookmark(wordId) {
+  let word = null;
+  for (const setKey of sortedSetKeys) {
+    const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
+    if (found) { word = found; break; }
+  }
+  if (!word) return;
+  const kw = word.korean;
+  const index = bookmarkedWords.findIndex(function(item) {
+    return item.word === kw;
+  });
+  if (index > -1) {
+    bookmarkedWords.splice(index, 1);
+    saveToStorageDebounced();
+    renderCurrentView();
+    var overlay = document.querySelector('.fixed');
+    if (overlay) overlay.remove();
+  }
+}
+
+// ---- 收藏本上下翻页 ----
+function prevBookmarkWord() {
+    console.log('prevBookmarkWord 被点击了！');
+    console.log('当前索引:', state.currentIndex);
+    console.log('队列长度:', state.currentQueue ? state.currentQueue.length : '队列为空');
+    if (state.currentIndex > 0) {
+        state.currentIndex--;
+        console.log('新索引:', state.currentIndex);
+        renderLearnView();
+    } else {
+        showToast('已经是第一个单词了', 1500);
+    }
+}
+
+function nextBookmarkWord() {
+    console.log('nextBookmarkWord 被点击了！');
+    console.log('当前索引:', state.currentIndex);
+    console.log('队列长度:', state.currentQueue ? state.currentQueue.length : '队列为空');
+    if (state.currentIndex < state.currentQueue.length - 1) {
+        state.currentIndex++;
+        console.log('新索引:', state.currentIndex);
+        renderLearnView();
+    } else {
+        showToast('已经是最后一个单词了', 1500);
+    }
 }
