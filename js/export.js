@@ -53,4 +53,3 @@ window.saveListenAndExit = saveListenAndExit;
 window.renderListenView = renderListenView;
 window.onListenModeSelected = onListenModeSelected;
 window.showListenResumeDialog = showListenResumeDialog;
-window.updateWrongBtnStyle = updateWrongBtnStyle;
