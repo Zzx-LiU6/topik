@@ -13,7 +13,7 @@ function setupKeyboard() {
     }
 
     // 原有的视图检测，加入 'spell'
-    if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks' && state.currentView !== 'wrong' && state.currentView !== 'spell') return;
+    if (state.currentView !== 'learn' && state.currentView !== 'review' && state.currentView !== 'bookmarks' && state.currentView !== 'wrong' && state.currentView !== 'spell' && state.currentView !== 'listen') return;
 
     switch (e.key) {
       case ' ':
@@ -47,25 +47,40 @@ function setupKeyboard() {
         e.preventDefault();
         handleAction('permanent');
         break;
-      case 's':
-      case 'S':
-        e.preventDefault();
-        {
-          let queue;
-          if (state.currentView === 'bookmarks') {
-            queue = state.currentQueue;
-          } else if (state.mode === 'review') {
-            queue = await getWordsToReviewToday();
-          } else {
-            queue = state.currentQueue;
+      case 'v':
+      case 'V':
+          e.preventDefault();
+          {
+              let queue;
+              if (state.currentView === 'bookmarks') {
+                  queue = state.currentQueue;
+              } else if (state.mode === 'review') {
+                  queue = await getWordsToReviewToday();
+              } else {
+                  queue = state.currentQueue;
+              }
+              if (queue[state.currentIndex]) {
+                  speakWord(queue[state.currentIndex].korean);
+              }
           }
-          if (queue[state.currentIndex]) {
-            speakWord(queue[state.currentIndex].korean);
+          break;
+          // 其他模式：朗读当前单词
+          {
+              let queue;
+              if (state.currentView === 'bookmarks') {
+                  queue = state.currentQueue;
+              } else if (state.mode === 'review') {
+                  queue = await getWordsToReviewToday();
+              } else {
+                  queue = state.currentQueue;
+              }
+              if (queue[state.currentIndex]) {
+                  speakWord(queue[state.currentIndex].korean);
+              }
           }
-        }
-        break;
-      case 'b':
-      case 'B':
+          break;
+      case 'c':
+      case 'C':
         e.preventDefault();
         {
           let q;
