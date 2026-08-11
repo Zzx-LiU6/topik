@@ -260,10 +260,10 @@ async function handleAction(action) {
             wordProgress[currentWord.id] = {
                 status: 'mastered',
                 firstLearnedDate: today,
-                lastReviewDate: today,
+                lastReviewDate: null,          // ✅ 首次学习不算复习
                 nextReviewDate: addDays(today, 1),
-                reviewCount: 1,
-                reviewHistory: [today]
+                reviewCount: 0,                // ✅ 首次学习没有复习次数
+                reviewHistory: []              // ✅ 首次学习没有复习历史
             };
         } else {
             existing.reviewCount = (existing.reviewCount || 0) + 1;
