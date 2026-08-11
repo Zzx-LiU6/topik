@@ -103,32 +103,39 @@ async function renderHomeView() {
             <div class="text-3xl">🎯</div>
           </div>
           <h2 class="text-lg font-medium text-coffee-600 dark:text-slate-100 mb-3">测验・错题</h2>
-          <div class="flex gap-2 mb-2">
-            <!-- 选择按钮 -->
-            <button onclick="showQuizModePicker()" class="flex-1 px-4 py-2.5 
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <!-- 选择 -->
+            <button onclick="showQuizModePicker()" class="px-4 py-2.5 
               bg-coffee-400 dark:bg-[#a8997e] 
               hover:bg-coffee-500 dark:hover:bg-[#b8a88c] 
               text-white text-sm font-medium rounded-2xl transition-all duration-200">
               📝 选择
             </button>
-            <!-- 拼写按钮 -->
-            <button onclick="showSpellModePicker()" class="flex-1 px-4 py-2.5 
+            <!-- 拼写 -->
+            <button onclick="showSpellModePicker()" class="px-4 py-2.5 
               bg-cream-200 dark:bg-[#27243b] 
               hover:bg-cream-300 dark:hover:bg-[#332f4c] 
               text-coffee-600 dark:text-slate-100 text-sm font-medium rounded-2xl transition-all duration-200 
               border border-cream-300 dark:border-slate-600">
               ✍️ 拼写
             </button>
+            <!-- 听力 -->
+            <button onclick="showListenModePicker()" class="px-4 py-2.5 
+              bg-blue-400 dark:bg-[#2a4a6a] 
+              hover:bg-blue-500 dark:hover:bg-[#3a5a7a] 
+              text-white text-sm font-medium rounded-2xl transition-all duration-200">
+              🎧 听力
+            </button>
+            <!-- 错题集 -->
+            <button onclick="goToWrongWords()" class="w-full px-4 py-2.5
+            bg-amber-100 dark:bg-[#223a4e]
+            hover:bg-amber-200 dark:hover:bg-[#2b475e]
+            text-amber-700 dark:text-[#d4b878] text-sm font-medium rounded-2xl transition-all duration-200
+            border border-amber-300 dark:border-[#d4b878]
+            ${state.wrongWords.length === 0 ? 'opacity-50' : ''}">
+            📝 错题集 ${state.wrongWords.length > 0 ? `(${state.wrongWords.length})` : ''}
+          </button>
           </div>
-          <!-- 错题集按钮 -->
-          <button onclick="goToWrongWords()" class="w-full px-4 py-2.5
-          bg-amber-100 dark:bg-[#223a4e]
-          hover:bg-amber-200 dark:hover:bg-[#2b475e]
-          text-amber-700 dark:text-[#d4b878] text-sm font-medium rounded-2xl transition-all duration-200
-          border border-amber-300 dark:border-[#d4b878]
-          ${state.wrongWords.length === 0 ? 'opacity-50' : ''}">
-          📝 错题集 ${state.wrongWords.length > 0 ? `(${state.wrongWords.length})` : ''}
-        </button>
         </div>
 
         <!-- 生词收藏本 -->
