@@ -44,3 +44,4 @@ window.onSpellModeSelected = onSpellModeSelected;
 window.showSpellResumeDialog = showSpellResumeDialog;
 window.toggleKeyboardHelp = toggleKeyboardHelp;
 window.closeKeyboardHelp = closeKeyboardHelp;
+window.backToCategoryList = backToCategoryList;
