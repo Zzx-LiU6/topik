@@ -236,6 +236,34 @@ async function init() {
     }
   }
 
+  // ===== 新增：恢复听力状态 =====
+  if (state.currentView === 'listen') {
+    const savedListen = localStorage.getItem('topik_listen_state');
+    if (savedListen) {
+      try {
+        const ls = JSON.parse(savedListen);
+        if (ls.questions && ls.questions.length > 0 && ls.index < ls.questions.length) {
+          // 恢复听力全局变量（listen.js 中定义的）
+          listenQuestions = ls.questions;
+          listenIndex = ls.index || 0;
+          listenScore = ls.score || 0;
+          listenMode = ls.mode || 'today';
+          // 保持 state.currentView = 'listen'
+        } else {
+          state.currentView = 'home';
+          localStorage.removeItem('topik_listen_state');
+        }
+      } catch (e) {
+        state.currentView = 'home';
+        localStorage.removeItem('topik_listen_state');
+      }
+    } else {
+      // 如果 URL 带了 #listen 但没有存储数据，回首页
+      state.currentView = 'home';
+    }
+  }
+  // ===== 听力恢复结束 =====
+
   // ===== 新增：恢复错题复习状态 =====
   // 无论当前视图是什么，只要存储中有错题复习状态就恢复
   const wrongState = restoreWrongReviewState();
