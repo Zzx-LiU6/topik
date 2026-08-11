@@ -284,7 +284,19 @@ function loadFromStorage() {
 
     if (savedProgress) wordProgress = JSON.parse(savedProgress) || {};
     if (savedSet) state.currentSet = parseInt(savedSet, 10) || 1;
-    if (savedBookmarks) bookmarkedWords = JSON.parse(savedBookmarks) || [];
+    if (savedBookmarks) {
+      const parsed = JSON.parse(savedBookmarks);
+      // 检测旧格式：如果是字符串数组，迁移为对象数组
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+        bookmarkedWords = parsed.map(function(word) {
+          return { word: word, category: '未分类' };
+        });
+        saveToStorage(); // 立即保存新格式
+        console.log('收藏数据已从旧格式迁移到分类格式');
+      } else {
+        bookmarkedWords = parsed || [];
+      }
+    }
     if (savedWrong) state.wrongWords = JSON.parse(savedWrong) || [];
   } catch (e) {
     console.warn('加载存储失败:', e);
@@ -333,7 +345,16 @@ function importProgress() {
       const data = JSON.parse(text);
       if (data.wordProgress) wordProgress = data.wordProgress;
       if (data.currentSet) state.currentSet = data.currentSet;
-      if (data.bookmarkedWords) bookmarkedWords = data.bookmarkedWords;
+      if (data.bookmarkedWords) {
+        // 检测旧格式
+        if (Array.isArray(data.bookmarkedWords) && data.bookmarkedWords.length > 0 && typeof data.bookmarkedWords[0] === 'string') {
+          bookmarkedWords = data.bookmarkedWords.map(function(word) {
+            return { word: word, category: '未分类' };
+          });
+        } else {
+          bookmarkedWords = data.bookmarkedWords;
+        }
+      }
       if (data.wrongWords) state.wrongWords = data.wrongWords;
       saveToStorage();
       alert('进度已导入，页面将刷新。');
