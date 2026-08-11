@@ -1,4 +1,7 @@
 // ========== 词汇总览页面（异步） ==========
+
+const PAGE_SIZE = 48;  // 每页显示 50 个单词
+
 async function renderOverviewView() {
     // 汇总所有单词
     let allWords = [];
@@ -6,31 +9,31 @@ async function renderOverviewView() {
       allWords = allWords.concat(allVocabularySets[setKey] || []);
     }
   
-      // 先按等级过滤出当前范围内的单词
-      let levelFilteredWords = allWords;
-      if (state.levelFilter === 'primary') {
-        levelFilteredWords = allWords.filter(w => w.level === '初级');
-      } else if (state.levelFilter === 'intermediate') {
-        levelFilteredWords = allWords.filter(w => w.level === '中级');
+    // 先按等级过滤出当前范围内的单词
+    let levelFilteredWords = allWords;
+    if (state.levelFilter === 'primary') {
+      levelFilteredWords = allWords.filter(w => w.level === '初级');
+    } else if (state.levelFilter === 'intermediate') {
+      levelFilteredWords = allWords.filter(w => w.level === '中级');
+    }
+  
+    const statusCount = { new: 0, learning: 0, permanent: 0, review: 0, mastered: 0 };
+    levelFilteredWords.forEach(w => {
+      const s = getWordStatus(w.id);
+      if (s === 'permanent') {
+        statusCount.permanent++;
+      } else if (s === 'review') {
+        statusCount.review++;
+        statusCount.learning++;
+      } else if (s === 'mastered') {
+        statusCount.mastered++;
+        statusCount.learning++;
+      } else if (s === 'new') {
+        statusCount.new++;
+      } else {
+        statusCount.learning++;
       }
-    
-      const statusCount = { new: 0, learning: 0, permanent: 0, review: 0, mastered: 0 };
-      levelFilteredWords.forEach(w => {
-        const s = getWordStatus(w.id);
-        if (s === 'permanent') {
-          statusCount.permanent++;
-        } else if (s === 'review') {
-          statusCount.review++;
-          statusCount.learning++;
-        } else if (s === 'mastered') {
-          statusCount.mastered++;
-          statusCount.learning++;
-        } else if (s === 'new') {
-          statusCount.new++;
-        } else {
-          statusCount.learning++;
-        }
-      });
+    });
   
     const total = allWords.length;
   
@@ -43,33 +46,40 @@ async function renderOverviewView() {
       filteredWords = filteredWords.filter(w => w.level === '中级');
     }
   
-  // 再按状态过滤（基于已等级筛选的结果）
-  if (state.selectedFilter === 'new') {
-    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'new');
-  } else if (state.selectedFilter === 'review') {
-    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'review');
-  } else if (state.selectedFilter === 'mastered') {
-    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'mastered');
-  } else if (state.selectedFilter === 'permanent') {
-    filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'permanent');
-  } else if (state.selectedFilter === 'bookmarked') {
-    filteredWords = levelFilteredWords.filter(w => bookmarkedWords.includes(w.korean));
-  } else {
-    filteredWords = levelFilteredWords;  // 'all' 状态
-  }
+    // 再按状态过滤（基于已等级筛选的结果）
+    if (state.selectedFilter === 'new') {
+      filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'new');
+    } else if (state.selectedFilter === 'review') {
+      filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'review');
+    } else if (state.selectedFilter === 'mastered') {
+      filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'mastered');
+    } else if (state.selectedFilter === 'permanent') {
+      filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'permanent');
+    } else if (state.selectedFilter === 'bookmarked') {
+      filteredWords = levelFilteredWords.filter(w => bookmarkedWords.some(item => item.word === w.korean));
+    } else {
+      filteredWords = levelFilteredWords;  // 'all' 状态
+    }
   
-    //【修改】应用搜索过滤
+    // 应用搜索过滤
     const rawKeyword = state.searchKeyword.trim();
     const lowerKeyword = rawKeyword.toLowerCase();
     if (rawKeyword) {
       filteredWords = filteredWords.filter(w =>
-      // 韩文不转小写，韩文字母无大小写，转小写会匹配失败
         w.korean.includes(rawKeyword) ||
-      // 罗马音、中文释义统一小写模糊匹配
         w.roman.toLowerCase().includes(lowerKeyword) ||
         w.meaning.toLowerCase().includes(lowerKeyword)
       );
     }
+  
+    // ===== 分页逻辑 =====
+    const totalPages = Math.ceil(filteredWords.length / PAGE_SIZE);
+    // 确保当前页码有效
+    if (state.overviewPage < 1) state.overviewPage = 1;
+    if (state.overviewPage > totalPages && totalPages > 0) state.overviewPage = totalPages;
+    const startIndex = (state.overviewPage - 1) * PAGE_SIZE;
+    const pageWords = filteredWords.slice(startIndex, startIndex + PAGE_SIZE);
+    // ===== 分页结束 =====
   
     elements.app.innerHTML = `
       <div>
@@ -85,7 +95,7 @@ async function renderOverviewView() {
   
         <h1 class="text-xl font-medium text-coffee-600 mb-4">📊 词汇状态总览 (${getTotalSetCount()}套词库)</h1>
   
-        <!--【修改】新增搜索框 -->
+        <!-- 搜索框 -->
         <div class="mb-4">
           <div class="relative">
             <input type="text"
@@ -120,11 +130,10 @@ async function renderOverviewView() {
           </button>
         </div>
   
-              <!-- 饼图 + 统计 -->
+        <!-- 饼图 + 统计 -->
         <div class="bg-white rounded-3xl p-6 shadow-md border border-cream-300 mb-6">
           <div class="flex items-center justify-center mb-4">
           <svg viewBox="0 0 36 36" class="w-32 h-32">
-            <!-- 底层完整底色环 -->
             <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E8DDD4" stroke-width="3"></circle>
             ${(()=>{
               const total = levelFilteredWords.length;
@@ -134,18 +143,15 @@ async function renderOverviewView() {
               const dispLearning = Math.max(0.3, pLearning);
               const dispPermanent = Math.max(0.3, pPermanent);
               return `
-              <!-- 1.未学习 浅米色 -->
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#D4C4B5" stroke-width="3"
                   stroke-dasharray="${pNew} 100"
                   stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
-              <!-- 2.学习中（今日已学+待复习，不含永久掌握）棕色 -->
               ${pLearning > 0 ? `
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B7355" stroke-width="3"
                   stroke-dasharray="${dispLearning} 100"
                   stroke-dashoffset="-${pNew}"
                   stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
               ` : ''}
-              <!-- 3.永久掌握 绿色，偏移=未学习+学习中两段总和 -->
               ${pPermanent > 0 ? `
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="#22C55E" stroke-width="3"
                   stroke-dasharray="${dispPermanent} 100"
@@ -154,7 +160,6 @@ async function renderOverviewView() {
               ` : ''}
               `;
             })()}
-            <!-- 中间固定图标 -->
             <text x="18" y="20.5" text-anchor="middle" font-size="7">📊</text>
            </svg>
           </div>
@@ -172,7 +177,6 @@ async function renderOverviewView() {
               <span class="text-coffee-500">已掌握 ${statusCount.permanent}</span>
             </div>
           </div>
-          <!-- 明细数字 -->
           <div class="text-xs text-coffee-400 text-center mt-2">
             待复习 ${statusCount.review} 词 · 今日已学 ${statusCount.mastered} 词
           </div>
@@ -200,8 +204,8 @@ async function renderOverviewView() {
           </button>
         </div>
   
-        <!--【修改】词汇列表 - 卡片可点击进入背诵 -->
-        ${filteredWords.length === 0 ? `
+        <!-- 词汇列表 -->
+        ${pageWords.length === 0 ? `
           <div class="text-center py-12 bg-white rounded-3xl border border-cream-300 shadow-sm">
             <div class="flex justify-center mb-4">
               <svg class="w-12 h-12 text-cream-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +217,7 @@ async function renderOverviewView() {
           </div>
         ` : `
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          ${filteredWords.map(w => {
+          ${pageWords.map(w => {
             const status = getWordStatus(w.id);
             const statusClass = status === 'permanent' ? 'bg-green-50 border-green-200' :
                                 status === 'mastered' ? 'bg-coffee-50 border-coffee-200' :
@@ -229,7 +233,7 @@ async function renderOverviewView() {
                    onclick="startLearnWord('${w.id}')">
                 <div class="flex justify-between items-start mb-1">
                   <span class="font-medium text-coffee-600 text-sm">${w.korean}</span>
-                  ${bookmarkedWords.includes(w.korean) ? '<span class="text-yellow-500 text-xs">⭐</span>' : ''}
+                  ${bookmarkedWords.some(item => item.word === w.korean) ? '<span class="text-yellow-500 text-xs">⭐</span>' : ''}
                 </div>
                 <p class="text-xs text-coffee-400 mb-2">${w.meaning}</p>
                 <span class="text-xs px-2 py-0.5 rounded-full ${statusBadgeClass}">${statusText}</span>
@@ -238,6 +242,80 @@ async function renderOverviewView() {
           }).join('')}
         </div>
         `}
+  
+        <!-- ===== 分页导航 ===== -->
+        ${filteredWords.length > PAGE_SIZE ? `
+        <div class="flex items-center justify-between mt-4 pt-3 border-t border-cream-200">
+          <button onclick="changeOverviewPage(-1)" 
+                  class="px-3 py-1.5 rounded-lg text-sm ${state.overviewPage <= 1 ? 'text-coffee-300 cursor-not-allowed' : 'text-coffee-500 hover:bg-cream-200'}">
+            ← 上一页
+          </button>
+          <span class="text-sm text-coffee-400">${state.overviewPage} / ${totalPages}（共 ${filteredWords.length} 个单词）</span>
+          <button onclick="changeOverviewPage(1)" 
+                  class="px-3 py-1.5 rounded-lg text-sm ${state.overviewPage >= totalPages ? 'text-coffee-300 cursor-not-allowed' : 'text-coffee-500 hover:bg-cream-200'}">
+            下一页 →
+          </button>
+        </div>
+        ` : ''}
+        <!-- ===== 分页导航结束 ===== -->
+  
       </div>
     `;
-  }
+}
+
+// ===== 翻页函数 =====
+function changeOverviewPage(delta) {
+    const newPage = state.overviewPage + delta;
+    if (newPage < 1) return;
+    
+    // 重新计算总页数（需要重新获取筛选结果）
+    let allWords = [];
+    for (const setKey of sortedSetKeys) {
+        allWords = allWords.concat(allVocabularySets[setKey] || []);
+    }
+    
+    let levelFilteredWords = allWords;
+    if (state.levelFilter === 'primary') {
+        levelFilteredWords = allWords.filter(w => w.level === '初级');
+    } else if (state.levelFilter === 'intermediate') {
+        levelFilteredWords = allWords.filter(w => w.level === '中级');
+    }
+    
+    let filteredWords = allWords;
+    if (state.levelFilter === 'primary') {
+        filteredWords = filteredWords.filter(w => w.level === '初级');
+    } else if (state.levelFilter === 'intermediate') {
+        filteredWords = filteredWords.filter(w => w.level === '中级');
+    }
+    
+    if (state.selectedFilter === 'new') {
+        filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'new');
+    } else if (state.selectedFilter === 'review') {
+        filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'review');
+    } else if (state.selectedFilter === 'mastered') {
+        filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'mastered');
+    } else if (state.selectedFilter === 'permanent') {
+        filteredWords = levelFilteredWords.filter(w => getWordStatus(w.id) === 'permanent');
+    } else if (state.selectedFilter === 'bookmarked') {
+        filteredWords = levelFilteredWords.filter(w => bookmarkedWords.some(item => item.word === w.korean));
+    } else {
+        filteredWords = levelFilteredWords;
+    }
+    
+    const rawKeyword = state.searchKeyword.trim();
+    const lowerKeyword = rawKeyword.toLowerCase();
+    if (rawKeyword) {
+        filteredWords = filteredWords.filter(w =>
+            w.korean.includes(rawKeyword) ||
+            w.roman.toLowerCase().includes(lowerKeyword) ||
+            w.meaning.toLowerCase().includes(lowerKeyword)
+        );
+    }
+    
+    const totalPages = Math.ceil(filteredWords.length / PAGE_SIZE);
+    if (newPage > totalPages) return;
+    
+    state.overviewPage = newPage;
+    renderCurrentView();
+}
+// ===== 翻页函数结束 =====
