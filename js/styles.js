@@ -50,6 +50,11 @@ styleSheet.textContent = `
     --progress-bg: #2a3f58;    /* 错题按钮深色底色 */
     --bg-amber-100: #253f57;
     --bg-amber-200: #304c68;
+      #spell-input {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border-color: var(--border-strong);
+      }
   }
 
   /* 全局应用变量 */
