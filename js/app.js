@@ -25,6 +25,7 @@ let state = {
   mode: 'new',
   selectedFilter: 'all',
   searchKeyword: '',
+  overviewPage: 1,
   targetWord: null,
   levelFilter: 'all',
   quizQuestions: [],
