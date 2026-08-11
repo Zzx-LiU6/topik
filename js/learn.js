@@ -18,10 +18,15 @@ async function renderLearnView() {
         }
         total = queue.length || 1;
     } else if (isBookmarks) {
-        queue = await getBookmarkedWords();
-        state.currentQueue = queue;
+        // 如果有预置队列（如从分类进入），直接使用；否则获取全部收藏
+        if (state.currentQueue && state.currentQueue.length > 0) {
+            queue = state.currentQueue;
+        } else {
+            queue = await getBookmarkedWords();
+            state.currentQueue = queue;
+        }
         total = queue.length || 1;
-    } else if (isWrongReview) {
+    }else if (isWrongReview) {
         // 错题集复习：直接使用 state.currentQueue
         queue = state.currentQueue || [];
         total = queue.length || 1;
@@ -68,7 +73,9 @@ async function renderLearnView() {
         progressText = `学习进度 ${completed} 个 / 共 ${total} 个`;
     }
   
-    const isBookmarked = bookmarkedWords.includes(currentWord.korean);
+    const isBookmarked = bookmarkedWords.some(function(item) {
+      return item.word === currentWord.korean;
+    });
   
     let pageTitle;
     if (isReview) pageTitle = '🔁 复习模式';
@@ -163,7 +170,7 @@ async function renderLearnView() {
         <footer class="space-y-3">
           <!-- 收藏按钮 -->
           <div class="flex justify-center mb-2">
-            <button onclick="toggleBookmark('${currentWord.id}')"
+            <button onclick="showCategoryPicker('${currentWord.id}')"
                     class="flex items-center px-4 py-2 rounded-xl text-sm transition-all duration-200 ${isBookmarked ? 'bg-yellow-100 text-yellow-600' : 'bg-cream-200 text-coffee-500 hover:bg-cream-300'}">
               <svg class="w-4 h-4 mr-1 ${isBookmarked ? 'fill-current' : ''}" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
@@ -339,8 +346,7 @@ async function handleAction(action) {
     }
 }
   
-function toggleBookmark(wordId) {
-    // 遍历所有套装，查找 id 匹配的单词对象
+function toggleBookmark(wordId, category) {
     let word = null;
     for (const setKey of sortedSetKeys) {
       const found = allVocabularySets[setKey]?.find(w => w.id === wordId);
@@ -349,14 +355,25 @@ function toggleBookmark(wordId) {
         break;
       }
     }
-    if (!word) return; // 没找到对应的单词，不执行收藏操作
-  
-    const kw = word.korean; // 使用韩文单词作为收藏标识
-    const index = bookmarkedWords.indexOf(kw);
-    if (index > -1) {
-      bookmarkedWords.splice(index, 1);
+    if (!word) return;
+    const kw = word.korean;
+    
+    const existingIndex = bookmarkedWords.findIndex(function(item) {
+      return item.word === kw;
+    });
+    
+    if (existingIndex > -1) {
+      // 已收藏，如果传入了分类则更新，否则移除
+      if (category) {
+        bookmarkedWords[existingIndex].category = category;
+      } else {
+        bookmarkedWords.splice(existingIndex, 1);
+      }
     } else {
-      bookmarkedWords.push(kw);
+      bookmarkedWords.push({
+        word: kw,
+        category: category || '未分类'
+      });
     }
     saveToStorageDebounced();
     renderCurrentView();
