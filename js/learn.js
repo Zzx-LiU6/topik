@@ -381,14 +381,17 @@ function toggleBookmark(wordId, category) {
   
 function setFilter(filter) {
     state.selectedFilter = filter;
+    state.overviewPage = 1;
     renderCurrentView();
 }
 function setLevelFilter(level) {
     state.levelFilter = level;
+    state.overviewPage = 1;
     renderCurrentView();
 }
 const debounceSearch = debounce(function(keyword) {
     state.searchKeyword = keyword.trim();
+    state.overviewPage = 1;
     renderCurrentView();
 }, 500);
   
